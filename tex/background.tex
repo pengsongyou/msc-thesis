@@ -1,0 +1,132 @@
+\chapter{Background} \label{chap:background}
+
+\section{Introduction}
+Many scientific subject areas (i.e. medicine, remote sensing) have
+to deal with the problem of image correspondence (also known as
+image registration or image matching). This problem arises when
+there is a need to extract information about an object by
+comparing a set of different images in which this object appears.
+Most of the time this comparison cannot be performed easily
+because of differences between images such as viewpoint changes,
+use of different sensors, images taken at different times, and
+changes in general imaging conditions. Given such differences, a
+way to align different images of the same object is needed. In
+medical applications, and specifically in mammography,
+radiologists have to deal with all the above problems. For
+example, a way to detect abnormal structures in the breast is to
+compare temporal (images of the same breast taken at different
+times) or contralateral (using left-right breast) mammograms.
+
+As images are taken under different conditions (i.e. film
+sensitivity, radiation exposure, breast compression and patient
+movement) and/or time intervals (e.g. screening interval of three
+years) the structure of the breast is likely to suffer some
+changes, although an overall similarity will be maintained. A way
+to detect those changes is to align the images and compare the
+results using, for instance, simple image subtraction. In
+addition, as described in the previous chapter, different imaging
+modalities are being used to provide a better understanding of a
+region of interest. The first step to incorporate information from
+those modalities is to align them to be able to establish areas of
+correspondence.
+
+An image correspondence method is based on finding a mapping
+function ($f(x,y)$) that maps each coordinate of one image ($A$)
+into another image ($B$).
+
+\begin{equation}
+B(x',y')=A(f(x,y))
+\end{equation}
+\noindent which maps spatial coordinates $(x,y)$ in the reference
+image $A$ to coordinates $(x',y')$ in the warped (also referred to
+as target) image $B$. Usually the function $f$ is expressed as two
+(or three in three dimensions) separate functions $f_x$ and $f_y$
+(and $f_z$). This review describes image registration in two
+dimensions. However extrapolation to 3D is often straightforward
+and is described in detail where appropriate.
+
+A general methodology for image alignment typically follows those
+steps:
+
+\begin{enumerate}
+\item \emph{Selection and extraction of features.} A registration method can
+be based on matching different image primitives. For instance
+points, edges, ridges, surfaces, or a whole image. The selection
+of a suitable primitive is a trade off between the information it
+provides and its complexity. For instance, raw pixels with only
+intensity information provide a straightforward comparison. On the
+other hand, taking the whole image provides more (and more
+complex) information. Primitives will be described by a set of
+features extracted from them. That is the case, for instance, of
+shape features extracted from regions or curvature values
+extracted from linear structures. There is an extensive literature
+about feature extraction, the reader is referred to Chapter 4
+where a review on that subject is given.
+
+\item \emph{Similarity metric.} A way to measure the similarity between
+the extracted features is needed. Many different similarity
+metrics have been proposed and their suitability depends on the
+chosen feature. The reader is referred to Chapter 5 where
+similarity measures are reviewed and a novel measure is proposed.
+
+\item \emph{Selection of the mapping function and estimation of
+its parameters.} The complexity of a mapping function should be
+determined depending on the application field and type of
+misalignment we are dealing with. Once a mapping function is
+selected its parameters need to be estimated. This requires a
+definition of an optimum search space and search strategy which is
+often related to optimisation of a cost function related to a
+similarity measure previously mentioned.
+
+\item \emph{Alignment of images using the mapping function.} When the
+function parameters are known we are able to transform an image in
+order to minimise the initial misalignment.
+\end{enumerate}
+
+
+\subsection{Interpolation}
+Usually transformed coordinates $(x',y')$ in the warped image do
+not match a given coordinate grid (i.e. they are non-integer
+values) and interpolation is needed. Different interpolation
+methods have been used in image registration: nearest neighbour,
+tri-linear and partial volume distribution. The interpolation
+problem is graphically represented in Figure~\ref{fig:interp}.
+
+\begin{figure}[htb]
+        \centering
+        \epsfxsize=4cm
+        {\epsfbox{figures/interp.eps}}
+  \caption{Interpolation of corresponding coordinates}
+  \label{fig:interp}
+\end{figure}
+
+Nearest neighbour interpolation assigns the intensity value of
+$m=(x',y')$ to its nearest point:
+\begin{equation}
+        B(m)=B(\_{\forall i}{min}(d_E[m,n_i]))
+\end{equation}
+\noindent where $d_E$ indicates Euclidean distance and $n_i$ are
+the nearest neighbours. The nearest neighbour approach provides
+good accuracy and it is easy to compute.
+
+Trilinear interpolation assigns to $m$ the value of the weighted
+($w_i$) sum of the neighbouring pixels.
+
+\begin{equation}
+        B(m)=\sum_iw_i B(n_i)
+\end{equation}
+\noindent where each weight $w_i$ is related to the distance from
+$m$ (see Figure~\ref{fig:interp})
+
+\begin{equation}
+        w_1 = (1-dx)(1-dy) ~~~~ w_2 = (1-dx)dy ~~~~w_3 = dx(1-dy)
+        ~~~~ w_4 = dx dy
+        \nonumber
+\end{equation}
+
+This interpolation creates a new intensity value, which could
+introduce undesirable effects in the intensity distribution. This
+fact is regarded as its main drawback, and can be solved using a
+partial volume distribution. This method adds the weight of each
+neighbour ($w_i$ values) at the intensity value in the histogram
+distribution, without creating an additional intensity value.

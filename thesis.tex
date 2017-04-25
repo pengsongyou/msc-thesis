@@ -1,0 +1,66 @@
+\documentclass[twoside,a4,12p]{report} %,draft,openright]
+
+\usepackage{epsf,graphicx}
+\usepackage{latexsym,amssymb}
+\usepackage{setspace,cite}
+% for margins left, right top bottom
+\usepackage{anysize}
+\marginsize{4cm}{2.5cm}{4cm}{4cm}
+
+%\usepackage{draft} %draft option - doesn't put full figures in -
+            % useful when editing
+
+%does the headers on the pages - keep in
+\usepackage{fancyhdr}
+
+%omitting any of these makes the thesis compile without the omitted
+%chapter - good for editing single chapters.
+%\includeonly{header,intro,background,appendix}
+
+\usepackage{multicol}
+\usepackage{blindtext}
+
+
+
+\begin{document}
+\newpage
+
+%Puts page numbering of preamble in roman and of main body of thesis in
+%arabic. Also defines how chapters and sections are made
+\pagenumbering{arabic}
+\setcounter{page}{1} \pagestyle{fancy}
+\renewcommand{\chaptermark}[1]{\markboth{\chaptername%
+\ \thechapter:\,\ #1}{}}
+\renewcommand{\sectionmark}[1]{\markright{\thesection\,\ #1}}
+
+%DEFINES TITLE PAGE, and contains abstract, acknowledgements, etc.
+
+\include{tex/header}
+
+\newpage
+
+%sets up headers for lefthand and righthand pages. To alter, edit
+%these lines and the chaptermark/sectionmark lines above
+\addtolength{\headheight}{3pt} \fancyhead{}
+\fancyhead[LE]{\sl\leftmark} \fancyhead[LO,RE]{\rm\thepage}
+\fancyhead[RO]{\sl\rightmark} \fancyfoot[C,L,E]{}
+\pagenumbering{arabic}
+
+%\singlespacing
+%\doublespacing
+\onehalfspacing
+\input{tex/intro.tex}
+\input{tex/background.tex}
+\appendix
+\input{tex/appendix.tex}
+
+%   this is for BibTeX.  remove if you plan to write the references in the document
+\bibliographystyle{plain}
+\bibliography{refs}
+
+
+%adds the bibliography to the table of contents
+\addcontentsline{toc}{chapter}
+         {\protect\numberline{Bibliography\hspace{-96pt}}}
+
+\end{document}
