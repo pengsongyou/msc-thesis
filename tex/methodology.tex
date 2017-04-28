@@ -1,5 +1,5 @@
 \chapter{Methodology} \label{chap:methodology}
-
+Describe the structure of this chapter.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Pre-Processing}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -11,10 +11,27 @@ In this section, we will describe respectively the basic depth inpainting and de
 %----------------------------------------------
 \subsection{Depth inpainting}
 %----------------------------------------------
-Image inpainting itself is a very mutual area and has been widely applied as a useful tool for many modern computer vision applications, e.g, restore the damaged parts of ancient paintings, or remove unwanted texts or objects in a photography. 
+Image inpainting itself is a very mutual area and has been widely applied as a useful tool for many modern computer vision applications, e.g, restore the damaged parts of ancient paintings, or remove unwanted texts or objects in a photography~\cite{bertalmio2000image}. 
 Since the idea of image inpainting is to automatically replace the lost or undesired parts of an image with the neighbouring information by interpolating, we were inspired to apply it to fill in the missing depth information.
 
+It should be noted that, the depth inpainting is applied to the input noisy image so there is no need to use some powerful algorithms.
+The only request is to fill the missing areas with inexpensive computational time.
 
+The general mathematical form of a typical inpainting algorithm~\cite{bertalmio2000image} can be written as follows
+
+\begin{equation}
+I^{t+1}(i,j) = I^{t}(i,j) + \mu U^{t}(i,j), \forall(i,j)\in \Omega
+\end{equation}
+where $I(i,j)$ is the pixel value in image $I$, $t$ is the artificial time step, $\mu$ is the updating rate, $U$ is the update information and $\Omega$ are the area with missing information.
+
+To build the update map $U$ in each time step, there are two principles that we need to follow.
+One is the inpainted values inside $\Omega$ should be as smooth as possible. 
+The other is the line reaching the edge of $\Omega$ should be continued and cross the missing area, while the values in $\Omega$ should be propagated from the nearest neighbours of $\Omega$ along the line.
+
+Based on these two principles, w can model $U$ as
+\begin{equation}
+U = 
+\end{equation}
 
 %----------------------------------------------
 \subsection{Depth denoising}
