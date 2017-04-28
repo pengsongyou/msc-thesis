@@ -1,0 +1,58 @@
+\chapter{Methodology} \label{chap:methodology}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Pre-Processing}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The first step for most of the image processing tasks is to pre-process the initial input image. 
+Due to the hardware limitation of modern inexpensive RGBD sensors, there usually exist holes with missing values on the depth images. 
+Also, the depth data is often noisy so we need to do denoising and acquire a relative smooth surface.
+
+In this section, we will describe respectively the basic depth inpainting and denoising algorithm that we use for our pre-processing. 
+%----------------------------------------------
+\subsection{Depth inpainting}
+%----------------------------------------------
+Image inpainting itself is a very mutual area and has been widely applied as a useful tool for many modern computer vision applications, e.g, restore the damaged parts of ancient paintings, or remove unwanted texts or objects in a photography. 
+Since the idea of image inpainting is to automatically replace the lost or undesired parts of an image with the neighbouring information by interpolating, we were inspired to apply it to fill in the missing depth information.
+
+
+
+%----------------------------------------------
+\subsection{Depth denoising}
+%----------------------------------------------
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{RGBD-Fusion method}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------
+\subsection{ddd}
+%----------------------------------------------
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Proposed method 1: RGB Ratio Model}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+%----------------------------------------------
+\subsection{Limitations}
+\begin{itemize}
+\item \emph{LEDs have to be set up far away from each other.}
+\item \emph{Natural illumination is a problem.}
+\item \emph{Only feasible for the simple albedo cases}
+\end{itemize}
+%----------------------------------------------
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Proposed method 2: Robust Lighting Variation Model without Regularization}
+
+%----------------------------------------------
+\subsection{Depth super-resolution}
+%----------------------------------------------
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+

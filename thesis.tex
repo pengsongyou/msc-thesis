@@ -1,11 +1,27 @@
+% !TEX spellcheck = en-US
+
 \documentclass[twoside,a4,12p]{report} %,draft,openright]
 
-\usepackage{epsf,graphicx}
+\usepackage{epsfig,graphicx}
 \usepackage{latexsym,amssymb}
 \usepackage{setspace,cite}
 % for margins left, right top bottom
 \usepackage{anysize}
 \marginsize{4cm}{2.5cm}{4cm}{4cm}
+
+\usepackage[pdftex,
+  bookmarks=true,%                   %%% generate bookmarks ...
+  bookmarksnumbered=true,%           %%% ... with numbers
+  bookmarksopen=true,%               %%% show complete tree of bookmarks
+  hypertexnames=true,%              %%% needed for correct links to figures !!!
+  breaklinks=true,%                  %%% break links if exceeding a single line
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=blue,
+  pagecolor=blue,
+  pagebackref=false,
+  urlcolor=blue]{hyperref}
+
 
 %\usepackage{draft} %draft option - doesn't put full figures in -
             % useful when editing
@@ -16,11 +32,6 @@
 %omitting any of these makes the thesis compile without the omitted
 %chapter - good for editing single chapters.
 %\includeonly{header,intro,background,appendix}
-
-\usepackage{multicol}
-\usepackage{blindtext}
-
-
 
 \begin{document}
 \newpage
@@ -51,11 +62,14 @@
 \onehalfspacing
 \input{tex/intro.tex}
 \input{tex/background.tex}
+\input{tex/methodology.tex}
+\input{tex/result.tex}
+\input{tex/conclusion.tex}
 \appendix
 \input{tex/appendix.tex}
 
 %   this is for BibTeX.  remove if you plan to write the references in the document
-\bibliographystyle{plain}
+\bibliographystyle{unsrt}
 \bibliography{refs}
 
 
