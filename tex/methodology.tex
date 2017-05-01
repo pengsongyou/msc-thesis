@@ -11,31 +11,86 @@ In this section, we will describe respectively the basic depth inpainting and de
 %----------------------------------------------
 \subsection{Depth inpainting}
 %----------------------------------------------
-Image inpainting itself is a very mutual area and has been widely applied as a useful tool for many modern computer vision applications, e.g, restore the damaged parts of ancient paintings, or remove unwanted texts or objects in a photography~\cite{bertalmio2000image}. 
-Since the idea of image inpainting is to automatically replace the lost or undesired parts of an image with the neighbouring information by interpolating, we were inspired to apply it to fill in the missing depth information.
 
-It should be noted that, the depth inpainting is applied to the input noisy image so there is no need to use some powerful algorithms.
+%\begin{figure}[!htbp]
+% \centering
+% \includegraphics[width=0.45\textwidth]{figures/methodology/inpainting_rgb.png}\includegraphics[width=0.45\textwidth]{figures/methodology/inpainting_depth.pdf}
+% \caption{dd}
+% \label{fig:inpainting1}
+%\end{figure}
+
+Image inpainting itself is a very mutual area and has been widely applied as a useful tool for many modern computer vision applications, e.g, restore the damaged parts of ancient paintings, or remove unwanted texts or objects in a photography~\cite{bertalmio2000image}. 
+Since the idea of image inpainting is to automatically replace the lost or undesired parts of an image with the neighbouring information by interpolating, we were inspired to apply it to fill in the missing depth information (Fig.~\ref{fig:inpainting1}).
+
+\begin{figure}[!htbp]
+\centering
+\subfigure[RGB image]{\includegraphics[width=0.45\linewidth]{figures/methodology/inpainting_rgb.png}}
+\subfigure[Input depth image]{\includegraphics[width=0.45\linewidth]{figures/methodology/inpainting_depth.pdf}}
+\caption{The input RGB and depth image of a vase. The brighter color on the image (b), the higher depth values.}
+\label{fig:inpainting1}
+\end{figure}
+
+It should be noted that, the depth inpainting is applied to the input noisy image so there is no need to use some powerful and advanced algorithms.
 The only request is to fill the missing areas with inexpensive computational time.
 
-The general mathematical form of a typical inpainting algorithm~\cite{bertalmio2000image} can be written as follows
+The general mathematical form of a classic inpainting algorithm~\cite{bertalmio2000image} can be written as follows
 
-\begin{equation}
+\begin{equation}\label{eq:method_inpaint1}
 I^{t+1}(i,j) = I^{t}(i,j) + \mu U^{t}(i,j), \forall(i,j)\in \Omega
 \end{equation}
 where $I(i,j)$ is the pixel value in image $I$, $t$ is the artificial time step, $\mu$ is the updating rate, $U$ is the update information and $\Omega$ are the area with missing information.
 
-To build the update map $U$ in each time step, there are two principles that we need to follow.
+To build the update map $U$ in each time step, there are two principles that~\cite{bertalmio2000image} follow.
 One is the inpainted values inside $\Omega$ should be as smooth as possible. 
-The other is the line reaching the edge of $\Omega$ should be continued and cross the missing area, while the values in $\Omega$ should be propagated from the nearest neighbours of $\Omega$ along the line.
+The other is the lines reaching the edge of $\Omega$ should be continued and cross the missing area, while the values in $\Omega$ should be propagated from the nearest neighbours of $\Omega$ along the lines.
 
-Based on these two principles, w can model $U$ as
+Again, due to the fact that our input depth images have poor quality, the lines arriving at the boundary $\delta \Omega$ may be incorrect or produced by the noises.
+Thus, it is reasonable that our initial depth inpainting problem focuses on the smooth propagation from the neighbours and fill in the holes.
+
+In each pixel $(x_0, y_0)$ inside $\Omega$, $U$ can be modelled as a discrete four-neighbour Laplacian operator:
 \begin{equation}
-U = 
+\begin{split}
+U(x_0, y_0) = \Delta I
+		        = 4I(x_0, y_0) - I(x_0 + 1, y_0) - I(x_0 - 1, y_0) - I(x_0, y_0+1) - I(x_0 , y_0 -1)
+\end{split}
 \end{equation}
+Now the inpainting problem in Eq.~\ref{eq:method_inpaint1} can be represented as a minimization problem: 
+\begin{equation}
+\min \iint\limits_{\Omega} |U(x,y)|^2 dxdy 
+\end{equation}
+This problem can be reformulated to a typical linear equation in matrix form:
+\begin{equation}
+\mathbf{Ax=b}
+\end{equation}
+Assuming $n$ is the number of pixel inside $\Omega$ and $m$ is the sum of $n$ and the number of neighbouring pixel around the boundary $\delta \Omega$, $\mathbf{A}$ is a $m\times n$ Laplacian matrix, $\mathbf{b}$ is a $m\times1$ vector containing all the known boundary depth values and the $0$ inside $\Omega$.
+Solving the linear equation with simple least square method, we can acquire the inpainted values.
+With our this naive image inpainting algorithm, we can fill the holes on the depth image as shown in Fig.~\ref{fig:pre-processing}.
 
 %----------------------------------------------
 \subsection{Depth denoising}
 %----------------------------------------------
+the depth images acquired from the RGB-D cameras with moderate price usually contain various noises. 
+As a standard pre-processing method, the image denoising technique is also applied to our input inpainted depth map.
+Similar to the state-of-the-art depth refinement methods~\cite{zhang2012edge, or2015rgbd, han2013high, or2016real, haque2014high, yu2013shading}, bilateral fitering~\cite{tomasi1998bilateral} is used as our depth pre-processing smoother. 
+
+The advantages of bilateral filter is reducing the noise while preserving the edge in the input image. 
+More than a regular Gaussian smooth filter, which uses only the difference of the image values (depth in our case) between the center pixel the neighbours, the bilateral filter also utilizes the space difference as a reference to build up the weighting function.
+The filtered pixel value can be modelled as a weighted sum of neighbouring pixels:
+\begin{equation}
+\hat{I}(\mathbf{x}) = \frac{1}{W}\sum_{\mathbf{y} \in \mathcal{N}} I(\mathbf{y})e^{-(\frac{\lVert I(\mathbf{x}) - I(\mathbf{y})\rVert^2}{2\sigma_r^2} + \frac{\lVert \mathbf{x} - \mathbf{y}\rVert^2}{2\sigma_d^2})}
+\end{equation}
+where $\hat{I}(\mathbf{x})$ is the filtered value at pixel $\mathbf{x}$, $\mathcal{N}$ represents the neighbouring pixels with $\mathbf{x}$ in the center, and $W$ is the the sum of the all the weights. 
+The smoothed result on our input depth image is shown in Fig.~\ref{fig:pre-processing}.
+
+\begin{figure}[!htbp]
+\centering
+\subfigure[Input depth]{\includegraphics[width=0.30\linewidth]{figures/methodology/inpainting_shape_before.pdf}}
+\subfigure[After inpainting]{\includegraphics[width=0.30\linewidth]{figures/methodology/inpainting_shape_after.pdf}}
+\subfigure[After smoothing]{\includegraphics[width=0.30\linewidth]{figures/methodology/smooth_shape_after.pdf}}
+\caption{Illustrations for the pre-processing on the depth of the vase.}
+\label{fig:pre-processing}
+\end{figure}
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -59,6 +114,7 @@ U =
 \item \emph{LEDs have to be set up far away from each other.}
 \item \emph{Natural illumination is a problem.}
 \item \emph{Only feasible for the simple albedo cases}
+\item \emph{Non specular objects}
 \end{itemize}
 %----------------------------------------------
 
