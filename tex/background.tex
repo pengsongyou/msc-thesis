@@ -20,12 +20,23 @@ Joint estimation of depth, reflectance and illumination for depth refinement
 %----------------------------------------------
 \subsection{Lambertian reflectance model}
 %----------------------------------------------
+SH model \url{https://pdfs.semanticscholar.org/7b8d/fc5d6e276f8048bb53b4a5e0611019570f1b.pdf}
+\cite{basri2003lambertian}
 
 cite Shape From Shading Emmanuel Prados, Olivier Faugeras
 \url{https://en.wikipedia.org/wiki/Lambertian_reflectance}
 
 \url{https://www.cs.cmu.edu/afs/cs/academic/class/15462-f09/www/lec/lec8.pdf}
 \url{http://www.cs.virginia.edu/~gfx/Courses/2011/ComputerVision/slides/lecture20_pstereo.pdf}
+
+
+we assume that surfaces in a scene are Lambertian, and we parameterize the incident lighting with spherical harmonics (SH) [Wu et al. 2011] \cite{wu2011shading}.
+
+In fact, we estimate incident irradiance as a function of the surface normal, that is the incident light, filtered by the cosine with the normal. For Lambertian reflectance, the incident irradiance function is known to be smooth, and can be represented with only little error using the first nine spherical harmonics basis functions up to 2nd order~\cite{ramamoorthi2001efficient}. (well, actually should check this one~\cite{ramamoorthi2001relationship})
+As with previous approaches, we henceforth estimate lighting from a grayscale version of I, and thus assume gray lighting with equal values in each RGB channel. In some steps, full RGB images are used, which we denote Ic. Unlike offline multi-view methods, we employ a triangulated depth map as geometry parameterization. This means there is a fixed depth pixel to mesh vertex relation, and we can express the reflected irradiance B(i, j) of a depth pixel (i, j) with normal n(i, j) and albedo k(i, j)
+
+This sentence is from\cite{wu2014real}
+
 
 %----------------------------------------------
 \subsection{Surface normal}
@@ -35,14 +46,43 @@ cite Shape From Shading Emmanuel Prados, Olivier Faugeras
 orthographic model
 perspective model
 
+It is an ill-posed problem to estimate the normal, that's where SFS and PS are involved. 
+
+SFS:
+Horn
+
+PS:
+
+calibrated light: woodham~\cite{woodham1980photometric} \url{https://classes.soe.ucsc.edu/cmps290b/Fall05/readings/Woodham80c.pdf}
+
+uncalibrated light:
+
+Hayakawa 94~\cite{hayakawa1994photometric} \url{http://www.wisdom.weizmann.ac.il/~vision/courses/2010_2/papers/photometric_stereo.pdf}
+start the I = albedo*light*normal $3\times3$ linear ambiguity
+
+Yville 97~\cite{yuille1997shape}: \url{http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.446.3648&rep=rep1&type=pdf}
+use integrability (smoothness), reduce the ambiguity to 3-parameter ambiguity (GBR)
+$z(x,y) = \lambda z(x,y) + \mu x + \beta y$, which is GBR ambiguity. That's why our method works because we have initial depth $z_0$ and data fidelity term constrains the $z$ to $z_0$, so the ambiguity equation is invalid. 
+And in our case: PDE ($\Delta z$) -> integrability is implicity enforced
+
+All the following PS method is trying to solve this ambiguity
+alldrin 07~\cite{alldrin2007resolving} use entropy \url{http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.93.7264&rep=rep1&type=pdf}
+
+\cite{papadhimitri2013new} perspective \url{http://www.cv-foundation.org/openaccess/content_cvpr_2013/papers/Papadhimitri_A_New_Perspective_2013_CVPR_paper.pdf}
+
+\cite{papadhimitri2014closed}\url{https://pdfs.semanticscholar.org/2cf9/088e9faa81872b355a4ea0a9fae46d3c8a08.pdf}
+
+\cite{queau2015solving} use TV \url{http://oatao.univ-toulouse.fr/15158/1/queau_15158.pdf}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Intrinsic Image Decomposition}
+%\section{Intrinsic Image Decomposition}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Depth Map Refinement}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Super-resolution Imaging}
+mention Super-resolution Imaging that it is also very interesting to extend our the state-of-the-art depth refinement to real refinement.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %

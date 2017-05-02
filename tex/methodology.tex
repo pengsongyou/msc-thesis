@@ -1,5 +1,16 @@
 \chapter{Methodology} \label{chap:methodology}
-Describe the structure of this chapter.
+Many computer vision applications such as 3D object reconstruction or visual SLAM require the depth information from RGBD cameras. 
+However, the results of these applications are often not unsatisfying because of the low quality of the depth acquisition from the cheap cameras. 
+It would be gratifying if we can improve the depth quality without changing to an expensive camera.
+Therefore, the depth refinement techniques play an essential role here.
+
+In this chapter, we first introduce some pre-processing techniques to fill the missing areas and reduce the noise of the input depth image. 
+Then, we describe in detail one of the state-of-the-art depth refinement method from Or-El \emph{et al.}~\cite{or2015rgbd} which we have chosen to implement as a starting point.
+A proposed method based on a RGB ratio model is then followed and introduced to eliminate the nonlinearity in most of modern depth enhancement method.
+Finally, another proposed technique which does not require any regularization terms is presented. 
+This method has also exhibited the ability of dealing with the objects with complicated albedos and extension to depth super-resolution.
+ 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Pre-Processing}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -91,19 +102,72 @@ The smoothed result on our input depth image is shown in Fig.~\ref{fig:pre-proce
 \label{fig:pre-processing}
 \end{figure}
 
-
+After the pre-processing procedure, we have an initial smooth and inpainted depth image. 
+It will be used as the input of all the depth refinement methods detailed in the following sections.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{RGBD-Fusion method}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+RGBD-Fusion is a state-of-the-art depth recovery method proposed by Or-El \emph{et al.}~\cite{or2015rgbd}.
+This novel method is adequate for natural scene illumination and able to enhance the depth map much faster than other methods.
+It is reasonable to gain a comprehensive understanding in the field of depth refinement by implementing this method.
+
+It is worth mentioning that we didn't just follow the paper step by step without injecting any our own ideas.
+For example, instead of estimating the pixel-wise ambient light with a separate energy function, we jointly calculated all four first-order spherical harmonics parameters (3 for point-source light direction and 1 for ambient light) with a simple fast least square, and the results have only negligible difference.
+And throughout the whole estimation process of light, albedo and depth, we only used the information within the given mask which also speeded up the algorithm.
+
+In the following part of this section, we will explain the method and more our implementation details can be found in Appendix~\ref{appendix:implement}.
 
 %----------------------------------------------
-\subsection{ddd}
+\subsection{Light estimation}
 %----------------------------------------------
+The natural uncalibrated illumination condition means the light is no longer a point light source, thus a Lambertian model is not sufficient. 
+Basri and Jocobs~\cite{basri2003lambertian} has found that low order spherical harmonics (SH) model can well set out the irradiance of the diffused objects under the natural scene.
+More specifically, the first-order SH model can capture 87.5\% of natural lighting, whose form is extended from the Lambertian model:
+\begin{equation}\label{eq:rgbd_light_model}
+I(x,y) = \rho(x,y)(\mathbf{l}^\top \mathbf{n} + \varphi)
+\end{equation}
+where $I$ is the irradiance of the objects, which is represented as the intensity values, $\rho$ is the albedo, $\mathbf{l}^\top = \begin{pmatrix} l_x & l_y & l_z \end{pmatrix}$ describes the light direction and $\varphi$ represents the ambient light.
+Here the surface normal $\mathbf{n}$ is formulated with orthographic projection, i.e. 
+\begin{equation}
+	\mathbf{n} = \frac{1}{\sqrt{1 + |\nabla z|^2}}
+	\begin{pmatrix} 
+		 \nabla z\\ 
+		 -1
+	 \end{pmatrix}
+\end{equation}
+$\nabla z$ represents the gradient of depth image $z(x,y)$ in $x$ and $y$ directions.
+Since we have the input depth from pre-processing, initial $\mathbf{n}_0$ is known.
 
+In the sense of intrinsic image decomposition, an image can be decomposed as the product of albedo and shading, so we can treat $\mathbf{l}^\top \mathbf{n} + \varphi$ in Eq.~\ref{eq:rgbd_light_model} as the shading $S(x,y)$.
+Therefore, we have:
+\begin{equation}
+S(x,y) = \mathbf{l}^\top \mathbf{n} + \varphi = \mathbf{s} \boldsymbol{\cdot} \tilde{\mathbf{n}}
+\end{equation}
+where
+\begin{equation}
+\mathbf{s} = \begin{pmatrix}\mathbf{l} \\ \varphi \end{pmatrix}   \; \; \tilde{\mathbf{n}} = \begin{pmatrix}\mathbf{n} \\ 1\end{pmatrix}  
+\end{equation}
+To compute the spherical harmonics parameters, we assume the albedo $\rho$ equals to $1$ for each pixel. 
+Since there are known intensity value and surface normal in each pixel within the mask, we will have an overdetermined least square problem: 
+\begin{equation}
+\argmin_{\mathbf{s}} \lVert I - \mathbf{s} \boldsymbol{\cdot} \tilde{\mathbf{n}} \rVert^2_2
+\end{equation}
+This process only need to be applied once at the beginning of the process since the least squares is not sensitive to the details on the surface, thus the estimation from the smooth surface is enough.
+
+%----------------------------------------------
+\subsection{Albedo estimation}
+%----------------------------------------------
+In order to acquire the a satisfying depth refinement outcome, an effective albedo estimation process is a matter of importance.
+If no regularization is imposed, the albedo image can be directly obtained from $I/S$, which is usually susceptible because of overfitting. 
+Therefore, a prior that emphasizes the piecewise smoothness on the albedo is applied.
+
+%----------------------------------------------
+\subsection{Depth enhancement}
+%----------------------------------------------
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Proposed method 1: RGB Ratio Model}
+\section{Proposed method I: RGB Ratio Model}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -120,7 +184,7 @@ The smoothed result on our input depth image is shown in Fig.~\ref{fig:pre-proce
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Proposed method 2: Robust Lighting Variation Model without Regularization}
+\section{Proposed method II: Robust Lighting Variation Model without Regularization}
 
 %----------------------------------------------
 \subsection{Depth super-resolution}
