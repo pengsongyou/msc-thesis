@@ -106,15 +106,16 @@ After the pre-processing procedure, we have an initial smooth and inpainted dept
 It will be used as the input of all the depth refinement methods detailed in the following sections.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{RGBD-Fusion method}
+\section{RGBD-Fusion Like method}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-RGBD-Fusion is a state-of-the-art depth recovery method proposed by Or-El \emph{et al.}~\cite{or2015rgbd}.
+RGBD-Fusion is a state-of-the-art depth recovery method proposed by Or-El \emph{et al.}~\cite{or2015rgbd} in 2015.
 This novel method is adequate for natural scene illumination and able to enhance the depth map much faster than other methods.
-It is reasonable to gain a comprehensive understanding in the field of depth refinement by implementing this method.
+It is reasonable to gain a comprehensive understanding in the field of depth refinement by implementing this method with our own idea inside.
 
 It is worth mentioning that we didn't just follow the paper step by step without injecting any our own ideas.
 For example, instead of estimating the pixel-wise ambient light with a separate energy function, we jointly calculated all four first-order spherical harmonics parameters (3 for point-source light direction and 1 for ambient light) with a simple fast least square, and the results have only negligible difference.
 And throughout the whole estimation process of light, albedo and depth, we only used the information within the given mask which also speeded up the algorithm.
+This is the reason we call our first method "RGB-Fusion Like" method
 
 In the following part of this section, we will explain the method and more our implementation details can be found in Appendix~\ref{appendix:implement}.
 
@@ -151,19 +152,40 @@ where
 To compute the spherical harmonics parameters, we assume the albedo $\rho$ equals to $1$ for each pixel. 
 Since there are known intensity value and surface normal in each pixel within the mask, we will have an overdetermined least square problem: 
 \begin{equation}
-\argmin_{\mathbf{s}} \lVert I - \mathbf{s} \boldsymbol{\cdot} \tilde{\mathbf{n}} \rVert^2_2
+\min_{\mathbf{s}} \lVert I - \mathbf{s} \boldsymbol{\cdot} \tilde{\mathbf{n}} \rVert^2_2
 \end{equation}
 This process only need to be applied once at the beginning of the process since the least squares is not sensitive to the details on the surface, thus the estimation from the smooth surface is enough.
 
 %----------------------------------------------
 \subsection{Albedo estimation}
 %----------------------------------------------
-In order to acquire the a satisfying depth refinement outcome, an effective albedo estimation process is a matter of importance.
-If no regularization is imposed, the albedo image can be directly obtained from $I/S$, which is usually susceptible because of overfitting. 
-Therefore, a prior that emphasizes the piecewise smoothness on the albedo is applied.
+As mentioned in Chapter~\ref{chap:background}, many depth recovery methods based on SFS or photometric stereo techniques assume constant or uniform albedo.
+Such assumption does not fit in with the real-world objects, and hence, they perform poorly on the shape estimation for multi-albedo cases.
+In order to acquire a satisfying shape outcome, an effective multi-albedo estimation process is a matter of importance.
+
+We know from Eq.~\ref{eq:rgbd_light_model} that, if we have the knowledge of input intensity and estimated shading, the albedo image can be directly obtained from $I/S$.
+However, such albedo is prone to the overfitting, which contains all the undesired spatial layout details.
+To resolve the overfitting problem, we should impose some restrictions on the estimation of albedo.
+A large amount of our daily objects have piecewise smooth appearance, which means most pieces of a layout are dominated by certain colors.
+Therefore, a prior that emphasizes the piecewise smoothness on the albedo should be defined.
+
+The albedo of an object can be roughly divided to several pieces with different colors, which we treat it as the image segmentation problem to some extend. 
+Thus, we should refer to some classic variational segmentation methods and adapt the edge preserving smoothness term to our problem.
+Similar to the idea in~\cite{casaca2014laplacian}, an anisotropic Laplacian term is imposed to estimate the albedo.
+The overall regularized minimization problem for albedo estimation is:
+
+\begin{equation}
+	\min_{\rho} \lVert I - \rho S\rVert^2_2 + \lambda_{\rho} \lVert \sum_{k \in \mathcal{N}} \omega_k (\rho - \rho_k) \rVert^2_2
+\end{equation}
+where $k$ indicates the neighbouring index of a certain pixel, which 4-connectivity is chosen in our case. 
+The weight $\omega_k$ is defined as below, and it is dependent to two parameters $\sigma_I$ and $\sigma_z$ which accounts for the discontinuity in both intensity and depth.
+\begin{equation}
+	\omega_k=\exp\Bigg(-\dfrac{\lVert I - I_k \rVert^2_2}{2\sigma_I^2} -\dfrac{\lVert z - z_k \rVert^2_2}{2\sigma_z^2}\Bigg)
+\end{equation}
 
 %----------------------------------------------
 \subsection{Depth enhancement}
+
 %----------------------------------------------
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
