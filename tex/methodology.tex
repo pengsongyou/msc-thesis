@@ -151,8 +151,8 @@ where
 \end{equation}
 To compute the spherical harmonics parameters, we assume the albedo $\rho$ equals to $1$ for each pixel. 
 Since there are known intensity value and surface normal in each pixel within the mask, we will have an overdetermined least square problem: 
-\begin{equation}
-\min_{\mathbf{s}} \lVert I - \mathbf{s} \boldsymbol{\cdot} \tilde{\mathbf{n}} \rVert^2_2
+\begin{equation}\label{eq:rgbd_light_estimate}
+\min_{\mathbf{s}} \; \lVert I - \mathbf{s} \boldsymbol{\cdot} \tilde{\mathbf{n}} \rVert^2_2
 \end{equation}
 This process only need to be applied once at the beginning of the process since the least squares is not sensitive to the details on the surface, thus the estimation from the smooth surface is enough.
 
@@ -163,7 +163,7 @@ As mentioned in Chapter~\ref{chap:background}, many depth recovery methods based
 Such assumption does not fit in with the real-world objects, and hence, they perform poorly on the shape estimation for multi-albedo cases.
 In order to acquire a satisfying shape outcome, an effective multi-albedo estimation process is a matter of importance.
 
-We know from Eq.~\ref{eq:rgbd_light_model} that, if we have the knowledge of input intensity and estimated shading, the albedo image can be directly obtained from $I/S$.
+We know from Eq.~\ref{eq:rgbd_light_model} that, assuming we have the knowledge of input intensity and estimated shading, the albedo image can be directly obtained from $I/S$.
 However, such albedo is prone to the overfitting, which contains all the undesired spatial layout details.
 To resolve the overfitting problem, we should impose some restrictions on the estimation of albedo.
 A large amount of our daily objects have piecewise smooth appearance, which means most pieces of a layout are dominated by certain colors.
@@ -174,8 +174,8 @@ Thus, we should refer to some classic variational segmentation methods and adapt
 Similar to the idea in~\cite{casaca2014laplacian}, an anisotropic Laplacian term is imposed to estimate the albedo.
 The overall regularized minimization problem for albedo estimation is:
 
-\begin{equation}
-	\min_{\rho} \lVert I - \rho S\rVert^2_2 + \lambda_{\rho} \lVert \sum_{k \in \mathcal{N}} \omega_k (\rho - \rho_k) \rVert^2_2
+\begin{equation}\label{eq:rgbd_albedo_estimate}
+	\min_{\rho} \; \lVert I - \rho S\rVert^2_2 + \lambda_{\rho} \lVert \sum_{k \in \mathcal{N}} \omega_k (\rho - \rho_k) \rVert^2_2
 \end{equation}
 where $k$ indicates the neighbouring index of a certain pixel, which 4-connectivity is chosen in our case. 
 The weight $\omega_k$ is defined as below, and it is dependent to two parameters $\sigma_I$ and $\sigma_z$ which accounts for the discontinuity in both intensity and depth.
@@ -185,29 +185,123 @@ The weight $\omega_k$ is defined as below, and it is dependent to two parameters
 
 %----------------------------------------------
 \subsection{Depth enhancement}
-
 %----------------------------------------------
+After acquiring the first-order spherical lighting parameters $\mathbf{s}$ and the albedo $\rho$, we can refine our depth with the help of Eq.~\ref{eq:rgbd_light_model}.
+Now our minimization problem with respect to the depth $z$ can be written as below. 
+Except for the SFS term, we add a data fidelity term to enable our refined surface close to the input and a smoothness term to make sure that there is no strong discontinuity in the output. 
+\begin{equation}\label{eq:rgbd_depth_refine}
+	\min_{z} \; \lVert I - \rho (\mathbf{l}^\top \frac{1}{\sqrt{1 + |\nabla z|^2}} \begin{pmatrix} \nabla z\\ -1 \end{pmatrix} + \varphi) \rVert^2_2 + \lambda_z \lVert z - z_0\rVert^2_2 + \lambda_l \lVert \Delta z \rVert^2_2
+\end{equation}
+where $z_0$ is the input depth and $\Delta$ represents the Laplacian operator. 
+It can be easily noticed that this introduced function is non-linear because the normal in our SFS term contains a denominator related to the depth gradient. 
+Many optimization methods can be applied to solve the non-linear problem, e.g. Levenberg-Marquardt algorithm or ADMM, but they are not suitable in our application due to expensive computational time. 
+Here a "fixed point" method which is similar to iteratively reweighted least square (IRLS) has been introduced to deal with our problem efficiently. 
+
+The idea of the fixed-point approach is in each iteration, the normalizer in the surface normal can be treated as a weighting term and determined by the depth from last iteration.
+With the help of this trick, the normalizer is known and Eq.~\ref{eq:rgbd_depth_refine} is linear again.
+We can solve the linear system using any fast linear optimization method.
+In each iteration $t$, this process can be represented like:
+\begin{equation}
+	\begin{split}
+		\mathbf{n}^t &= w^t
+		\begin{pmatrix} 
+			 \nabla z^t\\ 
+			 -1
+	         \end{pmatrix}\\
+	         w^t &=  \frac{1}{\sqrt{1 + |\nabla z^{t-1}|^2}}
+	\end{split}
+\end{equation}
+And now the depth refinement problem in Eq.~\ref{eq:rgbd_depth_refine} is reformulated as below in each iteration:
+
+\begin{equation}\label{eq:rgbd_depth_refine}
+	\min_{z^t} \; \lVert I - \rho (\mathbf{l}^\top \frac{1}{\sqrt{1 + |\nabla z^{t-1}|^2}} \begin{pmatrix} \nabla z^t\\ -1 \end{pmatrix} + \varphi) \rVert^2_2 + \lambda_z \lVert z^t - z_0\rVert^2_2 + \lambda_l \lVert \Delta z^t \rVert^2_2
+\end{equation}
+As long as the energy decreases in each iteration, the process is repeated.
+
+To sum up the approach in this section, it should be noted that the SFS term was used as a core in all light, albedo and depth estimation.
+Therefore, we can write an overall energy function for this RGBD-Fusion like method:
+\begin{equation}
+	E(\rho, z, \mathbf{s}) = \; \lVert I - \rho \mathbf{s}^\top\tilde{\mathbf{n}}(z) \rVert^2_2 + \lambda_{\rho} \lVert \sum_{k \in \mathcal{N}} \omega_k (\rho - \rho_k) \rVert^2_2 + \lambda_z \lVert z - z_0\rVert^2_2 + \lambda_l \lVert \Delta z \rVert^2_2
+\end{equation}
+
+Finally, the whole process of RGBD-Like method has been described in Alg.~\ref{alg:rgbd_fusion}. 
+
+
+
+\begin{algorithm}[!htbp]
+	\begin{algorithmic}[1]
+  		\caption{\textbf{RGBD-Fusion Like Depth Refinement}}
+		\label{alg:rgbd_fusion}
+		 \renewcommand{\algorithmicrequire}{\textbf{Input:}}
+		 \renewcommand{\algorithmicensure}{\textbf{Output:}}
+		 \REQUIRE Initial depth image $z_0$, RGB image $I$
+		 \vspace{1.8mm}
+		 \STATE Estimate SH parameter, $\mathbf{s} = \argmin \limits_{\mathbf{s}} \; E(\rho = 1, z_0)$ \COMMENT{Eq.~\ref{eq:rgbd_light_estimate}}
+		 \STATE Estimate albedo, $\rho = \argmin \limits_{\rho} \; E(z_0, \mathbf{s})$ \COMMENT{Eq.~\ref{eq:rgbd_albedo_estimate}}
+		 \STATE t = 1, $z^{t-1} = z_0$
+		 \vspace{1.8mm}
+		  \WHILE {$ E(\rho, z^{t}, \mathbf{s}) - E(\rho, z^{t-1}, \mathbf{s}) < 0$}
+		   \vspace{1.8mm}
+			  \STATE $z^{t} = \argmin \limits_{z} E(\rho, z, \mathbf{s})$ \COMMENT{Eq.~\ref{eq:rgbd_depth_refine}}
+		          \STATE $t := t + 1$
+		 \vspace{1.8mm}
+		  \ENDWHILE
+		  \ENSURE  Refined depth image $z^t$
+	\end{algorithmic}
+\end{algorithm}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Proposed method I: RGB Ratio Model}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Motivation}
+From what we described in the previous section, it is not difficult to find the limitations for the RGBD-Like method and improve correspondingly.
+\begin{itemize}
+\item the surface normal modelled by the orthographic projection is merely an ideal case, but it is not really in line with the real world camera model.
+And the intrinsic parameters such as the focal length and the coordinate of the principle point are either usually given as a preliminary knowledge, or obtained from calibration without much effort.
+Hence, it is reasonable to formulate the surface normal with the perspective projection model.
+
+\item In our RGBD-Fusion like method, only the intensity is applied because the values in RGB channels are more or less the same under the natural scene illumination. 
+When we estimated the SH lighting parameters and the albedo in 3 channels separately, the results are quite similar to each other.
+So using all three channel rather than just the intensity value will not provide much extra information and improve the depth enhancement. 
+Instead, it will just decelerate the whole algorithm.
+We can find a way to take better advantages of all three channels.
+
+\item The most important inspiration is, as we noticed from experiments, the fixed-point method works fast and well but the convergence is a problem. 
+In the $4$th line of the Alg.~\ref{alg:rgbd_fusion}, we make the iteration stop when the energy for the depth refinement starts increasing.
+This is due to the reason that the fixed-point method actually solves the non-linearity in a tricky way, which is mathematically not totally correct. 
+Therefore, we thought of the idea of RGB ratio model.
+
+\end{itemize}
+
+According to the discussion above, we thought of the idea of RGB ratio model.
+First of all, we replace the orthographic projection model with the perspective one.
+And to fully use the information of the RGB three channels and eliminate the non-linearity in the objective function in the depth refinement, we use the ratio model between every two channels among the three.
+R and G channel is used as an example of our ratio model:
+\begin{equation}\label{eq:ratio_rg_sh1}
+\begin{split}
+\frac{I_R - \rho_R \varphi_R}{I_G - \rho_G \varphi_G} &= \frac{\rho_R \mathbf{l}_R^\top \mathbf{n}}{\rho_G \mathbf{l}_G^\top \mathbf{n} }\\
+\rho_G (I_R - \rho_R \varphi_R)\mathbf{l}_G^T \mathbf{n} & = \rho_R (I_G - \rho_G \varphi_G)\mathbf{l}_R^T\mathbf{n}\\
+\end{split}
+\end{equation}
 
 
 
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Proposed method II: Robust Lighting Variation Model without Regularization}
 %----------------------------------------------
-\subsection{Limitations}
+\subsection{Limitations for previous method}
+%----------------------------------------------
 \begin{itemize}
 \item \emph{LEDs have to be set up far away from each other.}
 \item \emph{Natural illumination is a problem.}
 \item \emph{Only feasible for the simple albedo cases}
 \item \emph{Non specular objects}
 \end{itemize}
-%----------------------------------------------
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Proposed method II: Robust Lighting Variation Model without Regularization}
-
 %----------------------------------------------
 \subsection{Depth super-resolution}
 %----------------------------------------------

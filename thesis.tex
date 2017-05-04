@@ -11,6 +11,21 @@
 % define arg min 
 \DeclareMathOperator*{\argmin}{arg\,min}
 
+% Add psudeo-code 
+\usepackage{algorithm}
+\usepackage{algorithmic}
+%\usepackage{algpseudocode}% http://ctan.org/pkg/algorithmicx
+\makeatletter
+\newcommand\fs@ruled@notop{\def\@fs@cfont{\bfseries}\let\@fs@capt\floatc@ruled
+
+  \def\@fs@pre{}%
+  \def\@fs@post{\kern2pt\hrule\relax}%
+  \def\@fs@mid{\kern2pt\hrule\kern2pt}%
+  \let\@fs@iftopcapt\iftrue}
+\renewcommand\fst@algorithm{\fs@ruled@notop}
+\makeatother
+\restylefloat{algorithm}
+
 
 \usepackage{latexsym,amssymb}
 \usepackage{setspace,cite}
