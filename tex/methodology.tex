@@ -267,17 +267,43 @@ So using all three channel rather than just the intensity value will not provide
 Instead, it will just decelerate the whole algorithm.
 We can find a way to take better advantages of all three channels.
 
-\item The most important inspiration is, as we noticed from experiments, the fixed-point method works fast and well but the convergence is a problem. 
+\item The most important inspiration for us to propose RGB ratio model is, the RGBD-Fusion like method was not convergent in terms of depth enhancement part because of the fix-point method.
 In the $4$th line of the Alg.~\ref{alg:rgbd_fusion}, we make the iteration stop when the energy for the depth refinement starts increasing.
 This is due to the reason that the fixed-point method actually solves the non-linearity in a tricky way, which is mathematically not totally correct. 
-Therefore, we thought of the idea of RGB ratio model.
+Therefore, we thought of the idea of RGB ratio model, which can eliminate the denominator inside the normal and promise a real linear problem.
 
 \end{itemize}
 
 According to the discussion above, we thought of the idea of RGB ratio model.
 First of all, we replace the orthographic projection model with the perspective one.
-And to fully use the information of the RGB three channels and eliminate the non-linearity in the objective function in the depth refinement, we use the ratio model between every two channels among the three.
-R and G channel is used as an example of our ratio model:
+And then, to fully use the information of the RGB three channels while eliminating the non-linearity in the objective function in the depth refinement, we use the ratio model between every two channels among the three.
+
+It should be noted that we need to add active R, G and B 3 LED lights for the sake of emphasizing the difference among RGB channels.
+The green LED is installed in the middle with the red and blue ones on the two sides of ASUS Xtion Pro Live camera (both are around 30 cm to the green LED).
+The hardware setup and a color image taken with such setup are illustrated in Fig.~\ref{fig:ratio_setup}.
+
+\begin{figure}[!htbp]
+\centering
+\subfigure[LED lights setup]{\includegraphics[width=0.45\linewidth]{figures/methodology/ratio_setup.JPG}}
+\subfigure[A color image with our lighting setup]{\includegraphics[width=0.45\linewidth]{figures/methodology/ratio_setup_view.png}}
+\caption{Illustrations for the pre-processing on the depth of the vase.}
+\label{fig:ratio_setup}
+\end{figure}
+
+
+Now to derive our new ratio model, we treat each channel of the color image $I$ as an single intensity image, denoted by $I_R, I_G, I_B$.
+Therefore, 3 equations can be obtained from Eq.~\ref{eq:rgbd_light_model}.
+
+\begin{equation}\label{eq:ratio_prepare}
+    \begin{split}
+	I_R &= \rho_R(\mathbf{l}_R^\top \mathbf{n} + \varphi_R)\\
+	I_G &= \rho_G(\mathbf{l}_G^\top \mathbf{n} + \varphi_G)\\
+	I_B &= \rho_B(\mathbf{l}_B^\top \mathbf{n} + \varphi_B)
+    \end{split}
+\end{equation}
+
+Using R and G channel as an example, we acquire the the ratio model:
+
 \begin{equation}\label{eq:ratio_rg_sh1}
 \begin{split}
 \frac{I_R - \rho_R \varphi_R}{I_G - \rho_G \varphi_G} &= \frac{\rho_R \mathbf{l}_R^\top \mathbf{n}}{\rho_G \mathbf{l}_G^\top \mathbf{n} }\\
@@ -285,7 +311,7 @@ R and G channel is used as an example of our ratio model:
 \end{split}
 \end{equation}
 
-
+The key to this ratio model is toenlarge the difference of pixel values, light directions and the albedo in 3 channels
 
 
 
@@ -294,12 +320,13 @@ R and G channel is used as an example of our ratio model:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Proposed method II: Robust Lighting Variation Model without Regularization}
 %----------------------------------------------
-\subsection{Limitations for previous method}
+\subsection{Limitations for previous methods}
 %----------------------------------------------
 \begin{itemize}
 \item \emph{LEDs have to be set up far away from each other.}
 \item \emph{Natural illumination is a problem.}
-\item \emph{Only feasible for the simple albedo cases}
+\item \emph{Always need to turn off the auto white balance.}
+\item \emph{Only feasible for the simple albedo cases! Biggest problem because the depth is not really correct with the wrong albedo.}
 \item \emph{Non specular objects}
 \end{itemize}
 %----------------------------------------------
