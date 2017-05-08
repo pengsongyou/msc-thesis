@@ -157,7 +157,7 @@ Since there are known intensity value and surface normal in each pixel within th
 This process only need to be applied once at the beginning of the process since the least squares is not sensitive to the details on the surface, thus the estimation from the smooth surface is enough.
 
 %----------------------------------------------
-\subsection{Albedo estimation}
+\subsection{Albedo estimation}\label{sec:rgbd_albedo_estimation}
 %----------------------------------------------
 As mentioned in Chapter~\ref{chap:background}, many depth recovery methods based on SFS or photometric stereo techniques assume constant or uniform albedo.
 Such assumption does not fit in with the real-world objects, and hence, they perform poorly on the shape estimation for multi-albedo cases.
@@ -252,15 +252,11 @@ Finally, the whole process of RGBD-Like method has been described in Alg.~\ref{a
 \end{algorithm}
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Proposed method I: RGB Ratio Model}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 %----------------------------------------------
-\subsection{Motivation}
+\subsection{Limitations}
 %----------------------------------------------
 
-From what we described in the previous section, it is not difficult to find the limitations for the RGBD-Like method and improve correspondingly.
+Although our RGBD-Fusion like method works moderately well in many real cases, it is not difficult to find the limitations and improve correspondingly.
 \begin{itemize}
 \item the surface normal modelled by the orthographic projection is merely an ideal case, but it is not really in line with the real world camera model.
 And the intrinsic parameters such as the focal length and the coordinate of the principle point are either usually given as a preliminary knowledge, or obtained from calibration without much effort.
@@ -270,16 +266,21 @@ Hence, it is reasonable to formulate the surface normal with the perspective pro
 When we estimated the SH lighting parameters and the albedo in 3 channels separately, the results are quite similar to each other.
 So using all three channel rather than just the intensity value will not provide much extra information and improve the depth enhancement. 
 Instead, it will just decelerate the whole algorithm.
-We can find a way to take better advantages of all three channels.
+We ought to find a way to take better advantages of all three channels.
 
-\item The most important inspiration for us to propose RGB ratio model is, the RGBD-Fusion like method was not convergent in terms of depth enhancement part because of the fix-point method.
+\item The most important inspiration for us to propose RGB ratio model in the next section is, the RGBD-Fusion like method was not convergent in terms of depth enhancement part because of the fix-point method.
 In the $4$th line of the Alg.~\ref{alg:rgbd_fusion}, we make the iteration stop when the energy for the depth refinement starts increasing.
-This is due to the reason that the fixed-point method actually solves the non-linearity in a tricky way, which is mathematically not totally correct. 
+This is due to the reason that the fixed-point method actually tries to solve the non-linearity in a tricky way, which is mathematically not totally correct. 
 Therefore, we thought of the idea of RGB ratio model, which can eliminate the denominator inside the normal and promise a real linear problem.
 
 \end{itemize}
 
-According to the discussion above, we thought of the idea of RGB ratio model.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Proposed method I: RGB Ratio Model}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+According to the limitations in the last section, we thought of the idea of RGB ratio model.
 First of all, we replace the orthographic projection model with the perspective one.
 And then, to fully use the information of the RGB three channels while eliminating the non-linearity in the objective function in the depth refinement, we use the ratio model between every two channels among the three.
 
@@ -291,7 +292,7 @@ The hardware setup and a color image taken with such setup are illustrated in Fi
 \centering
 \subfigure[LED lights setup]{\includegraphics[width=0.45\linewidth]{figures/methodology/ratio_setup.JPG}}
 \subfigure[A color image with our lighting setup]{\includegraphics[width=0.45\linewidth]{figures/methodology/ratio_setup_view.png}}
-\caption{Illustrations for the pre-processing on the depth of the vase.}
+\caption{Illustrations for the RGB LED setup and the corresponding image.}
 \label{fig:ratio_setup}
 \end{figure}
 
@@ -419,24 +420,153 @@ since the normal $\mathbf{n}$ now is a function of $z$, Eq.~\ref{eq:ratio_depth1
 
 Correspondingly, the minimization for perspective model becomes:
 
-\begin{equation}\label{eq:z_c}
-z^{(t)}= \argmin_{z} ||z - \mathbf{z}_0^2||^2 + \lambda||\Psi \tilde{\mathbf{z}}||^2
+\begin{equation}\label{eq:ratio_depth_refine}
+z^{(t)}= \argmin_{z}  ||\Psi z||^2 + \lambda_z||z - z_0||^2
+\end{equation}
+
+The overall energy for the proposed RGB ratio model method is:
+\begin{equation}
+	E(\rho^{(t)}, z^{(t)}) = \; \lVert Ratio(\rho^{(t)}, z^{(t)}) \rVert^2_2 + \rVert^2 + \lambda_z||z^{(t)} - z_0||^2 + \lambda_{\rho}^1 \lVert \omega \nabla \rho^{(t)} \rVert^2  + \lambda_{\rho}^2 \lVert \rho - \rho^{(t-1)}\rVert^2
 \end{equation}
 
 
+\begin{algorithm}[!htbp]
+	\begin{algorithmic}[1]
+  		\caption{\textbf{RGB Ratio Model method}}
+		\label{alg:rgb_ratio}
+		 \renewcommand{\algorithmicrequire}{\textbf{Input:}}
+		 \renewcommand{\algorithmicensure}{\textbf{Output:}}
+		 \REQUIRE Initial depth image $z_0$, RGB image $I$, mask, focal length, principle point
+		 \vspace{1.8mm}
+		 \STATE Estimate initial SH parameter $\mathbf{s}^{(0)}$ for each cahnnel \COMMENT{Eq.~\ref{eq:rgbd_light_estimate}}
+		 \STATE Estimate initial color albedo $\rho^{(0)}$  \COMMENT{Eq.~\ref{eq:rgbd_albedo_estimate}}
+		 \STATE t = 1, $z^{(t-1)} = z_0$
+		 \vspace{1.8mm}
+		  \WHILE {$ \frac{\Vert E(\rho^{(t)}, z^{(t)}) - E(\rho^{(t-1)}, z^{(t-1)})\Vert}{E(\rho^{(t-1)}, z^{(t-1)})} > \epsilon$}
+		   \vspace{1.8mm}
+			\STATE $\rho^{(t)} = \argmin \limits_{\rho} E(\rho^{(t-1)}, z^{(t-1)})$ \COMMENT{Eq.~\ref{eq:ratio_albedo_refine}}
+			  \STATE $z^{(t)} = \argmin \limits_{z} E(\rho^{(t)})$ \COMMENT{Eq.~\ref{eq:ratio_depth_refine}}
+			  \STATE Update $\mathbf{s}^{(t)}$ \COMMENT{Eq.~\ref{eq:rgbd_light_estimate}}
+			  \vspace{1.8mm}
+		          \STATE $t := t + 1$
+		 \vspace{1.8mm}
+		  \ENDWHILE
+		  \ENSURE  Refined depth image $z^{(t)}$ and albedo $\rho^{(t)}$
+	\end{algorithmic}
+\end{algorithm}
+
+%----------------------------------------------
+\subsection{Limitations}
+%----------------------------------------------
+Our method can estimate the albedo and the depth better than our RGBD-Fusion like method in some cases because the non-linearity optimization problem for the RGBD-Fusion like method has been solved.
+Still, there exist some defects for our new RGB ratio model.
+\begin{itemize}
+\item Three LED lights have to be set up far away from each other.
+	As already mentioned about Eq.~\ref{eq:ratio_albedo_prepare} , the albedo refinement may fail if the lights are too close and thus, we need to put 3 lights too near. 
+	This can lead to some inconvenience, such as the requirement of enough space to put the system.
+\item RGB three lights is likely to bring extra specularity.
+	 If we want to refine the depth of an specular objects, the specular reflection will be from not only the natural scene illumination, but also RGB lights from 3 directions, which will make the refined results even worse.
+	 
+\item Auto white balance (AWB) has a big impact on the refined results.
+	This is due to the fact that the success of our model highly relies on the difference among 3 channels in a color image.
+	And AWB will mix up the information in 3 channels so it is very necessary to turn it off.
+	This impedes the generalization of our model because AWB has been set as a default in many modern inexpensive cameras.
+\end{itemize}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Proposed method II: Robust Lighting Variation Model without Regularization}
+\section{Proposed method II: Robust Lighting Variation Model}
+
 %----------------------------------------------
-\subsection{Limitations for previous methods}
+\subsection{Inspiration}
 %----------------------------------------------
-\begin{itemize}
-\item \emph{LEDs have to be set up far away from each other.}
-\item \emph{Natural illumination is a problem.}
-\item \emph{Always need to turn off the auto white balance.}
-\item \emph{Only feasible for the simple albedo cases! Biggest problem because the depth is not really correct with the wrong albedo.}
-\item \emph{Non specular objects}
-\end{itemize}
+We can notice that the albedo estimation of both our RGBD-Like method and RGB ratio model is highly dependent on the regularization terms which emphasize the piece-wise smoothness.
+This is a standard approach for almost all the state-of-the-art depth refinement method to estimate the albedo.
+They work fine when the albedo itself is very simple with big patches of patterns and only several dominant colors.
+However, there are more real-world objects containing complicated layout colors and patterns which all these methods with such a process of albedo estimation will fail.
+Were the albedo estimation not working, the outcome of final depth refinement has no chance to be corrrect. 
+What is more, The parameters for the regularization terms are often needed to be different for various object, so the parameters tuning for the regularization is tedious and time-consuming.
+
+As a consequence, it is reasonable to propose a new method which is able to eliminate all the regularization terms and estimate complicated albedo.
+The necessity of using regularizations for calculating albedo have been mentioned in section~\ref{sec:rgbd_albedo_estimation}, which in short is about avoiding the overfitting problem if only the shading term is applied.
+Provided we have several color images for a still object with light coming from various directions, the shading term in Eq.~\ref{eq:rgbd_albedo_estimate} without the need of regularizations is sufficient for estimating the albedo.
+{\color{blue} (not sure) Assuming the $n$ lights directions are estimated while the rough surface normal and $n$ color images are given, in this case, computing the albedo with a least square can resolve the overfitting problem.}
+
+In order to simulate the scenario that a direct light comes from different directions, we simply sway a white LED light in different directions and take several images (even just the flash lamp on any phone is okay). An example of a vase from different lighting directions are shown in Fig.~\ref{fig:robust_setup}.
+
+\begin{figure}[!htbp]
+\centering
+\subfigure{\includegraphics[width=0.23\linewidth]{figures/methodology/robust_setup1.png}}
+\subfigure{\includegraphics[width=0.23\linewidth]{figures/methodology/robust_setup2.png}}
+\subfigure{\includegraphics[width=0.23\linewidth]{figures/methodology/robust_setup3.png}}
+\subfigure{\includegraphics[width=0.23\linewidth]{figures/methodology/robust_setup4.png}}
+\caption{Illustrations for the obtained color images of a vase from various light directions with a white LED light.}
+\label{fig:robust_setup}
+\end{figure}
+ 
+{\color{red} put a real-world albedo estimate case that RGBD-fusion fails but our method works}
+
+
+%----------------------------------------------
+\subsection{Algorithm details}
+%----------------------------------------------
+Since we don't control with RGB LED lights anymore but one white light, the ratio model in Eq.~\ref{eq:ratio_rg_sh1} is not applicable anymore, so we need to use the standard 1st-order SH model described in Eq.~\ref{eq:rgbd_light_model} again to construct the input color images.
+
+Again, the proposed algorithm consists of three part: light estimation, albedo estimation and depth enhancement. 
+We need to iteratively update the light directions, color albedo and the depth, but unlike the RGB ratio model method, we don't need to have an initial estimated light and albedo beforehand.
+Instead, we can just assume the albedo to be 1 everywhere at the beginning and then start refining everything reiteratively in the loop, as shown in Alg.~\ref{alg:robust}.
+
+\textbf{Light estimation}
+Similar to Eq.~\ref{eq:rgbd_light_estimate}, we refine the SH parameters for each input image $i$ in each iteration using the formulation below:
+
+\begin{equation}\label{eq:robust_light_estimate}
+\min_{\mathbf{s}_i} \; \lVert I_i - \rho \boldsymbol{\cdot} \mathbf{s}_i^\top \tilde{\mathbf{n}} \rVert^2_2 \; \; i \in \{1, \cdots, n\}
+\end{equation}
+where
+\begin{equation}
+\mathbf{s}_i = \begin{pmatrix}\mathbf{l}_i \\ \varphi_i \end{pmatrix}   \; \; \tilde{\mathbf{n}} = \begin{pmatrix}\mathbf{n} \\ 1\end{pmatrix}  
+\end{equation}
+
+\textbf{Albedo estimation}
+\begin{equation}\label{eq:robust_albedo_estimate}
+	\min_{\rho} \; \lVert \mathbb{I} - \rho \boldsymbol{\cdot} \mathbb{S} \tilde{\mathbf{n}} \rVert^2_2 
+\end{equation}
+where
+\begin{equation}
+\mathbb{I} = \begin{pmatrix} I_1 \\ \vdots \\ I_n \end{pmatrix}   \; \; \mathbb{S} = \begin{pmatrix} \mathbf{s}_1^\top \\ \vdots \\ \mathbf{s}_n^\top \end{pmatrix}  
+\end{equation}
+
+
+\begin{algorithm}[!htbp]
+	\begin{algorithmic}[1] 
+  		\caption{\textbf{Robust Light Variation Model Method}}
+		\label{alg:robust}
+		 \renewcommand{\algorithmicrequire}{\textbf{Input:}}
+		 \renewcommand{\algorithmicensure}{\textbf{Output:}}
+		 \REQUIRE Initial depth image $z_0$, RGB image $I$, mask, focal length, principle point
+		 \vspace{1.8mm}
+		 \STATE Estimate initial SH parameter $\mathbf{s}^{(0)}$ for each cahnnel \COMMENT{Eq.~\ref{eq:rgbd_light_estimate}}
+		 \STATE Estimate initial color albedo $\rho^{(0)}$  \COMMENT{Eq.~\ref{eq:rgbd_albedo_estimate}}
+		 \STATE t = 1, $z^{(t-1)} = z_0$
+		 \vspace{1.8mm}
+		  \WHILE {$ \frac{\Vert E(\rho^{(t)}, z^{(t)}) - E(\rho^{(t-1)}, z^{(t-1)})\Vert}{E(\rho^{(t-1)}, z^{(t-1)})} > \epsilon$}
+		   \vspace{1.8mm}
+			\STATE $\rho^{(t)} = \argmin \limits_{\rho} E(\rho^{(t-1)}, z^{(t-1)})$ \COMMENT{Eq.~\ref{eq:ratio_albedo_refine}}
+			  \STATE $z^{(t)} = \argmin \limits_{z} E(\rho^{(t)})$ \COMMENT{Eq.~\ref{eq:ratio_depth_refine}}
+			  \STATE Update $\mathbf{s}^{(t)}$ \COMMENT{Eq.~\ref{eq:rgbd_light_estimate}}
+			  \vspace{1.8mm}
+		          \STATE $t := t + 1$
+		 \vspace{1.8mm}
+		  \ENDWHILE
+		  \ENSURE  Refined depth image $z^{(t)}$ and albedo $\rho^{(t)}$
+	\end{algorithmic}
+\end{algorithm}
+
+%----------------------------------------------
+\subsection{Deal with specular objects}
+%----------------------------------------------
+
+
 %----------------------------------------------
 \subsection{Depth super-resolution}
 %----------------------------------------------
