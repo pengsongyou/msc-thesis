@@ -115,44 +115,79 @@ It is reasonable to gain a comprehensive understanding in the field of depth ref
 It is worth mentioning that we didn't just follow the paper step by step without injecting any our own ideas.
 For example, instead of estimating the pixel-wise ambient light with a separate energy function, we jointly calculated all four first-order spherical harmonics parameters (3 for point-source light direction and 1 for ambient light) with a simple fast least square, and the results have only negligible difference.
 And throughout the whole estimation process of light, albedo and depth, we only used the information within the given mask which also speeded up the algorithm.
-This is the reason we call our first method "RGB-Fusion Like" method
+This is the reason we call our first method "RGB-Fusion Like" method.
 
-In the following part of this section, we will explain the method and more our implementation details can be found in Appendix~\ref{appendix:implement}.
+The natural uncalibrated illumination condition means the light is no longer a point light source, thus a Lambertian model is not sufficient. 
+Basri and Jocobs~\cite{basri2003lambertian} has found that low order spherical harmonics (SH) model can well set out the irradiance of the diffused objects under the natural scene.
+More specifically, the first-order SH model can capture 87.5\% of natural lighting, whose form is extended from the Lambertian model:
+%$$$$$$$$$$$$$$$$$$
+\begin{equation}\label{eq:rgbd_light_model}
+I(x,y) = \rho(x,y)(\mathbf{l}^\top \mathbf{n}(x,y) + \varphi)
+\end{equation}
+%$$$$$$$$$$$$$$$$$$
+where $I : \mathcal{M}\rightarrow \mathbb{R}^C$ is the irradiance of the objects, which is represented as the intensity values. 
+$\rho : \mathcal{M}\rightarrow \mathbb{R}^C$ is the albedo, $\mathbf{l}^\top = \begin{pmatrix} l_x & l_y & l_z \end{pmatrix}$ describes the light direction and $\varphi$ represents the ambient light.
+$\mathbf{n} : \mathcal{M}\rightarrow \mathbb{R}^3$ is the surface normal, which is dependent on the depth $z$.
+We define that $C = 1$ represents the grayscale image while C = 3 for color image. 
+$(x,y) \in \mathcal{M}$ represents the pixel coordinate inside the given mask $\mathcal{M}$ of an object.
+Eq.~\ref{eq:rgbd_light_model} can be rewritten as:
+%$$$$$$$$$$$$$$$$$$
+\begin{equation}\label{eq:rgbd_light_model2}
+I(x,y) = \rho(x,y) \; \mathbf{s}^\top \tilde{\mathbf{n}}(x,y)
+\end{equation}
+%$$$$$$$$$$$$$$$$$$
+where
+%$$$$$$$$$$$$$$$$$$
+\begin{equation}
+\mathbf{s} = \begin{pmatrix}\mathbf{l} \\ \varphi \end{pmatrix} 
+ \; \; 
+\tilde{\mathbf{n}}(x,y) = \begin{pmatrix}\mathbf{n}(x,y) \\ 1\end{pmatrix}
+\end{equation}
+%$$$$$$$$$$$$$$$$$$
+$\mathbf{s}$ is the first-order SH parameters. It should be mentioned that the 1st-order SH model is used as the fundamental model throughout the whole methodology part.
+
+After introducing the preliminary knowledge, the overall energy function for the RGBD-Fusion like method which can jointly estimate lights, albedo and depth is described below:
+%$$$$$$$$$$$$$$$$$$
+\begin{equation}\label{eq:rgbd_energy_rough}
+    \begin{split}
+        E(\rho, z, \mathbf{s}) = \; \mathop{\sum \sum}_{(x,y) \in \mathcal{M}} | I(x,y) - &\rho(x,y) \mathbf{s}^\top\tilde{\mathbf{n}}(x,y) |^2 
+        + \lambda_{\rho} \mathop{\sum \sum}_{(x,y) \in \mathcal{M}} \sum_{k \in \mathcal{N}} |\omega_k(x,y) (\rho(x,y) - \rho_k) |^2 \\
+        &+ \lambda_z \mathop{\sum \sum}_{(x,y) \in \mathcal{M}} | z(x,y) - z_0(x,y)|^2 + 
+        \lambda_l \mathop{\sum \sum}_{(x,y) \in \mathcal{M}} |\Delta z(x,y) |^2
+    \end{split} 
+\end{equation}
+%$$$$$$$$$$$$$$$$$$
+For the sake of simplicity, we will use $\lVert \boldsymbol{\cdot} \rVert_2^2 =\mathop{\sum \sum}\limits_{(x,y) \in \mathcal{M}}$ in the rest of this paper, and then $I$ and $\rho$ are vectorized to $\mathbb{R}^m$ within the mask, while $\tilde{\mathbf{n}} \in \mathbb{R}^{m\times 4} $. $m$ is the number of pixel inside the mask .
+So Eq.~\ref{eq:rgbd_energy_rough} can be reformulated as:
+%$$$$$$$$$$$$$$$$$$
+\begin{equation}\label{eq:rgbd_energy}
+	E(\rho, z, \mathbf{s}) = \; \lVert I - \rho \mathbf{s}^\top\tilde{\mathbf{n}}(z) \rVert^2_2 + \lambda_{\rho} \lVert \sum_{k \in \mathcal{N}} \omega_k (\rho - \rho_k) \rVert^2_2 + \lambda_z \lVert z - z_0\rVert^2_2 + \lambda_l \lVert \Delta z \rVert^2_2
+\end{equation}
+%$$$$$$$$$$$$$$$$$$
+
+The function consists of a SFS term, an albedo anisotropic Laplacian term, a depth data fidelity term and a depth isotropic Laplacian term. 
+Now we will go into the details step by step.
 
 %----------------------------------------------
 \subsection{Light estimation}
 %----------------------------------------------
-The natural uncalibrated illumination condition means the light is no longer a point light source, thus a Lambertian model is not sufficient. 
-Basri and Jocobs~\cite{basri2003lambertian} has found that low order spherical harmonics (SH) model can well set out the irradiance of the diffused objects under the natural scene.
-More specifically, the first-order SH model can capture 87.5\% of natural lighting, whose form is extended from the Lambertian model:
-\begin{equation}\label{eq:rgbd_light_model}
-I(x,y) = \rho(x,y)(\mathbf{l}^\top \mathbf{n} + \varphi)
-\end{equation}
-where $I$ is the irradiance of the objects, which is represented as the intensity values, $\rho$ is the albedo, $\mathbf{l}^\top = \begin{pmatrix} l_x & l_y & l_z \end{pmatrix}$ describes the light direction and $\varphi$ represents the ambient light.
 Here the surface normal $\mathbf{n}$ is formulated with orthographic projection, i.e. 
-\begin{equation}
-	\mathbf{n} = \frac{1}{\sqrt{1 + |\nabla z|^2}}
+\begin{equation}\label{eq:rgbd_normal}
+	\mathbf{n}(x,y) = \frac{1}{\sqrt{1 + |\nabla z(x,y)|^2}}
 	\begin{pmatrix} 
-		 \nabla z\\ 
+		 \nabla z(x,y)\\ 
 		 -1
 	 \end{pmatrix}
 \end{equation}
-$\nabla z$ represents the gradient of depth image $z(x,y)$ in $x$ and $y$ directions.
+$\nabla z(x,y)$ represents the gradient of depth image $z(x,y)$ in $x$ and $y$ directions.
 Since we have the input depth from pre-processing, initial $\mathbf{n}_0$ is known.
 
-In the sense of intrinsic image decomposition, an image can be decomposed as the product of albedo and shading, so we can treat $\mathbf{l}^\top \mathbf{n} + \varphi$ in Eq.~\ref{eq:rgbd_light_model} as the shading $S(x,y)$.
-Therefore, we have:
-\begin{equation}
-S(x,y) = \mathbf{l}^\top \mathbf{n} + \varphi = \mathbf{s} \boldsymbol{\cdot} \tilde{\mathbf{n}}
-\end{equation}
-where
-\begin{equation}
-\mathbf{s} = \begin{pmatrix}\mathbf{l} \\ \varphi \end{pmatrix}   \; \; \tilde{\mathbf{n}} = \begin{pmatrix}\mathbf{n} \\ 1\end{pmatrix}  
-\end{equation}
+In the sense of intrinsic image decomposition, an image can be decomposed as the product of albedo and shading, so we can treat $\mathbf{s}^\top \tilde{\mathbf{n}}(x,y) $ in Eq.~\ref{eq:rgbd_light_model2} as the shading.
+
 To compute the spherical harmonics parameters, we assume the albedo $\rho$ equals to $1$ for each pixel. 
-Since there are known intensity value and surface normal in each pixel within the mask, we will have an overdetermined least square problem: 
+Since there are known intensity value and surface normal in each pixel within the mask, we will have an overdetermined least square problem from the energy in Eq.~\ref{eq:rgbd_energy}: 
 \begin{equation}\label{eq:rgbd_light_estimate}
-\min_{\mathbf{s}} \; \lVert I - \mathbf{s} \boldsymbol{\cdot} \tilde{\mathbf{n}} \rVert^2_2
+\min_{\mathbf{s}} \; \lVert I - \mathbf{s}^\top \tilde{\mathbf{n}} \rVert^2_2
 \end{equation}
 This process only need to be applied once at the beginning of the process since the least squares is not sensitive to the details on the surface, thus the estimation from the smooth surface is enough.
 
@@ -170,15 +205,15 @@ To resolve the overfitting problem, we should impose some restrictions on the es
 A large amount of our daily objects have piecewise smooth appearance, which means most pieces of a layout are dominated by certain colors.
 Therefore, a prior that emphasizes the piecewise smoothness on the albedo should be defined.
 
-The albedo of an object can be roughly divided to several pieces with different colors, which we treat it as the image segmentation problem to some extend. 
+The albedo of an object can be roughly divided to several pieces with different intensities, which can be treated as the image segmentation problem to some extend. 
 Thus, we should refer to some classic variational segmentation methods and adapt the edge preserving smoothness term to our problem.
 Similar to the idea in~\cite{casaca2014laplacian}, an anisotropic Laplacian term is imposed to estimate the albedo.
-The overall regularized minimization problem for albedo estimation is:
+Now, the SH parameters $\mathbf{s}$ and the surface normal $\mathbf{n}$ are fixed, the overall regularized minimization problem in Eq.~\ref{eq:rgbd_energy} is:
 
 \begin{equation}\label{eq:rgbd_albedo_estimate}
-	\min_{\rho} \; \lVert I - \rho S\rVert^2_2 + \lambda_{\rho} \lVert \sum_{k \in \mathcal{N}} \omega_k (\rho - \rho_k) \rVert^2_2
+	\min_{\rho} \; \lVert I - \rho \; \mathbf{s}^\top \tilde{\mathbf{n}} \rVert^2_2 + \lambda_{\rho} \lVert \sum_{k \in \mathcal{N}} \omega_k (\rho - \rho_k) \rVert^2_2
 \end{equation}
-where $k$ indicates the neighbouring index of a certain pixel, which 4-connectivity is chosen in our case. 
+where $k$ indicates the neighbouring index of a certain pixel, which 4-connected set is chosen for $\mathcal{N}$ in our case. 
 The weight $\omega_k$ is defined as below, and it is dependent to two parameters $\sigma_I$ and $\sigma_z$ which accounts for the discontinuity in both intensity and depth.
 \begin{equation}
 	\omega_k=\exp\Bigg(-\dfrac{\lVert I - I_k \rVert^2_2}{2\sigma_I^2} -\dfrac{\lVert z - z_k \rVert^2_2}{2\sigma_z^2}\Bigg)
@@ -187,13 +222,13 @@ The weight $\omega_k$ is defined as below, and it is dependent to two parameters
 %----------------------------------------------
 \subsection{Depth enhancement}
 %----------------------------------------------
-After acquiring the first-order spherical lighting parameters $\mathbf{s}$ and the albedo $\rho$, we can refine our depth with the help of Eq.~\ref{eq:rgbd_light_model}.
-Now our minimization problem with respect to the depth $z$ can be written as below. 
-Except for the SFS term, we add a data fidelity term to enable our refined surface close to the input and a smoothness term to make sure that there is no strong discontinuity in the output. 
+After acquiring the first-order spherical lighting parameters $\mathbf{s}$ and the albedo $\rho$, we can refine our depth with the help of Eq.~\ref{eq:rgbd_light_model} and Eq.~\ref{eq:rgbd_normal}.
+Now our minimization problem with respect to the depth $z$ in Eq.~\ref{eq:rgbd_energy} can be written as below. 
+The data fidelity term is applied to resolve the SFS ambiguities and enables our refined surface close to the input. The Laplacian smoothness term makes sure that there is no strong discontinuity in the output. 
 \begin{equation}\label{eq:rgbd_depth_refine}
 	\min_{z} \; \lVert I - \rho (\mathbf{l}^\top \frac{1}{\sqrt{1 + |\nabla z|^2}} \begin{pmatrix} \nabla z\\ -1 \end{pmatrix} + \varphi) \rVert^2_2 + \lambda_z \lVert z - z_0\rVert^2_2 + \lambda_l \lVert \Delta z \rVert^2_2
 \end{equation}
-where $z_0$ is the input depth and $\Delta$ represents the Laplacian operator. 
+where $z_0$ is the input depth and $\Delta$ represents the  Laplacian operator. 
 It can be easily noticed that this introduced function is non-linear because the normal in our SFS term contains a denominator related to the depth gradient. 
 Many optimization methods can be applied to solve the non-linear problem, e.g. Levenberg-Marquardt algorithm or ADMM, but they are not suitable in our application due to expensive computational time. 
 Here a "fixed point" method which is similar to iteratively reweighted least square (IRLS) has been introduced to deal with our problem efficiently. 
@@ -219,13 +254,8 @@ And now the depth refinement problem in Eq.~\ref{eq:rgbd_depth_refine} is reform
 \end{equation}
 As long as the energy decreases in each iteration, the process is repeated.
 
-To sum up the approach in this section, it should be noted that the SFS term was used as a core in all light, albedo and depth estimation.
-Therefore, we can write an overall energy function for this RGBD-Fusion like method:
-\begin{equation}
-	E(\rho, z, \mathbf{s}) = \; \lVert I - \rho \mathbf{s}^\top\tilde{\mathbf{n}}(z) \rVert^2_2 + \lambda_{\rho} \lVert \sum_{k \in \mathcal{N}} \omega_k (\rho - \rho_k) \rVert^2_2 + \lambda_z \lVert z - z_0\rVert^2_2 + \lambda_l \lVert \Delta z \rVert^2_2
-\end{equation}
-
-Finally, the whole process of RGBD-Like method has been described in Alg.~\ref{alg:rgbd_fusion}. 
+To sum up the approach in this section, it should be noted that the SFS term in the overall energy (Eq.~\ref{eq:rgbd_energy} was used as a core in all light, albedo and depth estimation.
+The whole process of RGBD-Like method has been described in Alg.~\ref{alg:rgbd_fusion}. 
 
 
 
@@ -243,7 +273,7 @@ Finally, the whole process of RGBD-Like method has been described in Alg.~\ref{a
 		 \vspace{1.8mm}
 		  \WHILE {$ E(\rho, z^{(t)}, \mathbf{s}) - E(\rho, z^{(t-1)}, \mathbf{s}) < 0$}
 		   \vspace{1.8mm}
-			  \STATE $z^{(t)} = \argmin \limits_{z} E(\rho, z, \mathbf{s})$ \COMMENT{Eq.~\ref{eq:rgbd_depth_refine}}
+			  \STATE $z^{(t)} = \argmin \limits_{z} E(\rho, z, \mathbf{s})$ \COMMENT{Eq.~\ref{eq:rgbd_depth_refine2}}
 		          \STATE $t := t + 1$
 		 \vspace{1.8mm}
 		  \ENDWHILE
@@ -308,7 +338,7 @@ Therefore, 3 equations can be obtained from Eq.~\ref{eq:rgbd_light_model}.
     \end{split}
 \end{equation}
 
-Using R and G channel as an example, we acquire the the ratio model:
+Using R and G channel as an example, we acquire the ratio model:
 
 \begin{equation}\label{eq:ratio_rg_sh1}
 %\begin{split}
@@ -333,6 +363,18 @@ For the sake of simplicity we directly represent $z = \log z$ and redefine $\mat
 %$$$$$$$$$$$$$$$$
 where $f$ is the focal length, $(\tilde{x}, \tilde{y}) = (x- x_0, y - y_0)$, with $(x_0, y_0)$ the coordinates of principle points and $(x,y)$ the coordinate of a pixel inside the given mask, $[z_x, z_y]$ is the gradient of depth $z$.
 
+The overall energy for the proposed RGB ratio model method is:
+\begin{equation}\label{eq:ratio_energy}
+    \begin{split}
+	E(\mathcal{P}^{(t)}, z^{(t)}, \mathbf{s}^{(t)}) = \; &\lVert Ratio(\mathcal{P}^{(t)}, z^{(t)}) \rVert^2_2 
+	+ \lambda_z||z^{(t)} - z_0||^2 \\&
+	+ \lambda_{\rho}^1 \lVert \omega \nabla \mathcal{P}^{(t)} \rVert^2  
+	+ \lambda_{\rho}^2 \lVert \mathcal{P} - \mathcal{P}^{(t-1)}\rVert^2 
+	+ \sum_{c} \lVert I_c - \rho_c \; \mathbf{s}_c^\top \tilde{\mathbf{n}} \rVert^2_2, \; c\in\{R,G,B\}
+    \end{split}
+\end{equation}
+where $\mathcal{P}$ is the stack of RGB albedo.
+This energy is composed of a proposed ratio SFS term, a depth fidelity term, an albedo smoothness term, an albedo fidelity term and a SH estimation term.
 Now we will explain our proposed algorithm based on the new ratio model.
 
 %The key to this ratio model is toenlarge the difference of pixel values, light directions and the albedo in 3 channels
@@ -341,7 +383,7 @@ Now we will explain our proposed algorithm based on the new ratio model.
 \subsection{Algorithm details}
 %----------------------------------------------
 Similar to the RGBD-Fusion Like method, the algorithm is separated to 3 parts: light estimation, albedo estimation and depth enhancement.
-However, our new method requires an initial estimation of the color albedo as the input of our iterative method, and hence, we calculate the initial SH parameters $\mathbf{l}^{0}$ with Eq.~\ref{eq:rgbd_light_model} and then the albedo $\rho^{0}$ with Eq.~\ref{eq:rgbd_albedo_estimate} using the old model.
+However, our new method requires an initial estimation of the color albedo as the input of our iterative method, and hence, we calculate the initial SH parameters $\mathbf{l}^{0}$ with Eq.~\ref{eq:rgbd_light_model} and the color albedo $\mathcal{P}^{0}$ with Eq.~\ref{eq:rgbd_albedo_estimate} using the old model.
 Noted that the initial estimation is performed with respect to all RGB three channels.
 
 \textbf{Albedo refinement:}
@@ -363,9 +405,9 @@ For each pixel, we can reformulate the Eq.~\ref{eq:ratio_albedo_prepare} to a ma
         - I_B \mathbf{l}_R^\top\mathbf{n} & 0 & I_R \mathbf{l}_B^\top\mathbf{n} 
     \end{pmatrix}
     \begin{pmatrix}
-        \rho_R\\
-        \rho_G\\
-        \rho_B
+        \rho_R(x,y)\\
+        \rho_G(x,y)\\
+        \rho_B(x,y)
      \end{pmatrix}_{3 \times 1}
     =
     \begin{pmatrix}
@@ -374,19 +416,24 @@ For each pixel, we can reformulate the Eq.~\ref{eq:ratio_albedo_prepare} to a ma
         \rho_B \rho_R (\varphi_R\mathbf{l}_B^\top \mathbf{n} - \varphi_B\mathbf{l}_R^\top \mathbf{n})
     \end{pmatrix}
 \end{equation}
-which can be denoted as $\mathbf{A}_{\rho}\cdot \rho = \mathbf{b}_{\rho}$ and for the sake of simplicity, $\rho$ in this section represents the stack of RGB three albedos.
+This small linear system can be generalized to a big sparse linear system denoted as $\mathbf{A}_{\rho}\cdot {\mathcal{P}} = \mathbf{b}_{\rho}$.
+The structure of this equation can be found in Appendix~\ref{appendix:implement}.
+Here, $\mathcal{P}$ represents the stack of RGB three albedos.
 %$$$$$$$$$$$$$$$$
 
-To acquire the RGB albedos, some regularization terms are required similar to Eq.~\ref{eq:rgbd_albedo_estimate}. The minimization problem of color albedo in each iteration now becomes:
+To acquire the RGB albedos, some regularization terms are required similar to Eq.~\ref{eq:rgbd_albedo_estimate}. Now in each iteration, we fix the normal and the SH parameters, the minimization problem of color albedo in Eq.~\ref{eq:ratio_energy} in each iteration now becomes:
 %$$$$$$$$$$$$$$$$
 \begin{equation}\label{eq:ratio_albedo_refine}
-\rho^{(t)} = \argmin_{\rho} \lVert\mathbf{A}_{\rho}^{(t-1)}\rho - \mathbf{b}_{\rho}^{(t-1)}\rVert^2 + \lambda_{\rho}^1 \lVert \omega \nabla \rho \rVert^2  + \lambda_{\rho}^2 \lVert \rho - \rho^{(t-1)}\rVert^2
+    \mathcal{P}^{(t)} = 
+    \argmin_{\mathcal{P}} \lVert\mathbf{A}_{\rho}^{(t-1)}\mathcal{P} - \mathbf{b}_{\rho}^{(t-1)}\rVert^2 
+    + \lambda_{\rho}^1 \lVert \omega \nabla \mathcal{P} \rVert^2  
+    + \lambda_{\rho}^2 \lVert \mathcal{P} - \mathcal{P}^{(t-1)}\rVert^2
 \end{equation}
-where the weight $\omega = [\omega_R, \omega_G, \omega_B]$, which can be denoted as:
+where the weight $\omega = \begin{pmatrix} \omega_R\\ \omega_G\\ \omega_B \end{pmatrix}$, which can be denoted as:
 \begin{equation}
-\omega_i = \exp(- \frac{\sigma_i ||\nabla I_i||^2}{\max ||\nabla I_i||^2}), \quad i \in \{R,G,B\}
+\omega_c = \exp(- \frac{\sigma_c ||\nabla I_c||^2}{\max ||\nabla I_c||^2}), \quad c \in \{R,G,B\}
 \end{equation}
-$\sigma$ is a tuning parameter for each channel.  
+$\sigma_c$ is a tuning parameter for each channel $c$.  
 
 %$$$$$$$$$$$$$$$$
 There are three interesting aspects about the albedo estimation which worth having a few more words:
@@ -395,7 +442,7 @@ There are three interesting aspects about the albedo estimation which worth havi
     This is the reason why we need to set up 3 LED lights with a distance to each other, which will provide us enough difference on the light directions.
     \item Instead of using anisotropic Laplacian regularization in RGBD-Like method, the smoothness term in Eq.~\ref{eq:ratio_albedo_refine} only takes the use of the gradient of $\rho$ with a weight only depending on the RGB image's gradient.
     It takes less efforts to build such a smoothness term than the anisotropic term, but the acquired albedo is still satisfying.
-    \item If we don't use a data fidelity term $\lVert \rho - \rho^{(t-1)}\rVert^2$, the albedo will get increasingly dark after several iterations. 
+    \item If we don't use a data fidelity term $\lVert \mathcal{P} - \mathcal{P}^{(t-1)}\rVert^2$, the albedo will get increasingly dark after several iterations. 
     This is due to the fact that there also exist the RGB albedos in $\mathbf{b}_{\rho}$, so $\rho = 0$ will become the solution of our ratio model term.
     Therefore, adding the data term can not only avoid such problem, but help refine the albedo iteratively. 
 \end{enumerate}
@@ -417,18 +464,17 @@ since the normal $\mathbf{n}$ now is a function of $z$, Eq.~\ref{eq:ratio_depth1
 \begin{equation}
     \Psi z = 0
 \end{equation}
-
-Correspondingly, the minimization for perspective model becomes:
+When the estimated color albedo and light are fixed, the depth refinement problem in Eq.~\ref{eq:ratio_energy} is:
 
 \begin{equation}\label{eq:ratio_depth_refine}
-z^{(t)}= \argmin_{z}  ||\Psi z||^2 + \lambda_z||z - z_0||^2
+    z^{(t)}= \argmin_{z}  ||\Psi z||^2 + \lambda_z||z - z_0||^2
 \end{equation}
 
-The overall energy for the proposed RGB ratio model method is:
-\begin{equation}
-	E(\rho^{(t)}, z^{(t)}) = \; \lVert Ratio(\rho^{(t)}, z^{(t)}) \rVert^2_2 + \rVert^2 + \lambda_z||z^{(t)} - z_0||^2 + \lambda_{\rho}^1 \lVert \omega \nabla \rho^{(t)} \rVert^2  + \lambda_{\rho}^2 \lVert \rho - \rho^{(t-1)}\rVert^2
+\textbf{Light estimation}
+Since estimating light with the proposed ratio model is a ill-posed problem, we decided to use Eq.~\ref{eq:rgbd_light_estimate} to calculate the SH parameters for each channel when the albedo and the surface normal are freezed. The minimization problem from Eq.~\ref{eq:ratio_energy} can then be written as:
+\begin{equation}\label{eq:ratio_light_estimate}
+    \mathbf{s}^{(t)} = \argmin_{\mathbf{s} = (\mathbf{s}_R, \mathbf{s}_G, \mathbf{s}_B)}\sum_{c} \lVert I_c - \rho_c \; \mathbf{s}_c^\top \tilde{\mathbf{n}} \rVert^2_2, \; c\in\{R,G,B\}
 \end{equation}
-
 
 \begin{algorithm}[!htbp]
 	\begin{algorithmic}[1]
@@ -438,20 +484,20 @@ The overall energy for the proposed RGB ratio model method is:
 		 \renewcommand{\algorithmicensure}{\textbf{Output:}}
 		 \REQUIRE Initial depth image $z_0$, RGB image $I$, mask, focal length, principle point
 		 \vspace{1.8mm}
-		 \STATE Estimate initial SH parameter $\mathbf{s}^{(0)}$ for each cahnnel \COMMENT{Eq.~\ref{eq:rgbd_light_estimate}}
-		 \STATE Estimate initial color albedo $\rho^{(0)}$  \COMMENT{Eq.~\ref{eq:rgbd_albedo_estimate}}
-		 \STATE t = 1, $z^{(t-1)} = z_0$
+		 \STATE $\mathbf{s}^{(0)} = \argmin \limits_{\mathbf{s}} E(\mathcal{P} =1, z_0)$ \COMMENT{Eq.~\ref{eq:ratio_light_estimate}}
+		 \STATE Estimate initial color albedo and build $\mathcal{P}^{(0)}$  \COMMENT{Eq.~\ref{eq:rgbd_albedo_estimate}}
+		 \STATE t = 1, $z^{(0)} = z_0$
 		 \vspace{1.8mm}
-		  \WHILE {$ \frac{\Vert E(\rho^{(t)}, z^{(t)}) - E(\rho^{(t-1)}, z^{(t-1)})\Vert}{E(\rho^{(t-1)}, z^{(t-1)})} > \epsilon$}
+		  \WHILE {$ \frac{\Vert E(\mathcal{P}^{(t)}, z^{(t)}, \mathbf{s}^{(t)}) - E(\mathcal{P}^{(t-1)}, z^{(t-1)}, \mathbf{s}^{(t-1)})\Vert}{E(\mathcal{P}^{(t-1)}, z^{(t-1)}, \mathbf{s}^{(t-1)})} > \epsilon$}
 		   \vspace{1.8mm}
-			\STATE $\rho^{(t)} = \argmin \limits_{\rho} E(\rho^{(t-1)}, z^{(t-1)})$ \COMMENT{Eq.~\ref{eq:ratio_albedo_refine}}
-			  \STATE $z^{(t)} = \argmin \limits_{z} E(\rho^{(t)})$ \COMMENT{Eq.~\ref{eq:ratio_depth_refine}}
-			  \STATE Update $\mathbf{s}^{(t)}$ \COMMENT{Eq.~\ref{eq:rgbd_light_estimate}}
+			\STATE $\mathcal{P}^{(t)} = \argmin \limits_{\mathcal{P}} E(\mathcal{P}^{(t-1)}, z^{(t-1)}, \mathbf{s}^{(t-1)})$ \COMMENT{Eq.~\ref{eq:ratio_albedo_refine}}
+			  \STATE $z^{(t)} = \argmin \limits_{z} E(\mathcal{P}^{(t)}, \mathbf{s}^{(t-1)})$ \COMMENT{Eq.~\ref{eq:ratio_depth_refine}}
+			  \STATE $\mathbf{s}^{(t)} = \argmin \limits_{\mathbf{s}} E(\mathcal{P}^{(t)}, z^{(t)})$ \COMMENT{Eq.~\ref{eq:ratio_light_estimate}}
 			  \vspace{1.8mm}
 		          \STATE $t := t + 1$
 		 \vspace{1.8mm}
 		  \ENDWHILE
-		  \ENSURE  Refined depth image $z^{(t)}$ and albedo $\rho^{(t)}$
+		  \ENSURE  Refined depth image $z^{(t)}$ and stacked color albedo $\mathcal{P}^{(t)}$
 	\end{algorithmic}
 \end{algorithm}
 
@@ -512,19 +558,40 @@ In order to simulate the scenario that a direct light comes from different direc
 %----------------------------------------------
 Since we don't control with RGB LED lights anymore but one white light, the ratio model in Eq.~\ref{eq:ratio_rg_sh1} is not applicable anymore, so we need to use the standard 1st-order SH model described in Eq.~\ref{eq:rgbd_light_model} again to construct the input color images.
 
-Again, the proposed algorithm consists of three part: light estimation, albedo estimation and depth enhancement. 
+Again, the proposed algorithm consists of three parts: light estimation, albedo estimation and depth enhancement. 
 We need to iteratively update the light directions, color albedo and the depth, but unlike the RGB ratio model method, we don't need to have an initial estimated light and albedo beforehand.
 Instead, we can just assume the albedo to be 1 everywhere at the beginning and then start refining everything reiteratively in the loop, as shown in Alg.~\ref{alg:robust}.
+
+First of all, the SFS model we use for the proposed method is still from Eq.~\ref{eq:rgbd_light_model}, so the corresponding SFS minimization problem now becomes:
+\begin{equation}
+    \sum_{i} \sum_{c} \mathop{\sum \sum}_{(x,y) \in \mathcal{M}} | I_{i,c}(x,y) - \rho_c(x,y) \mathbf{s}_{i,c}^\top\tilde{\mathbf{n}}(x,y) |^2 
+\end{equation}
+$c\in\{R,G,B\},\; i\in\{ 1, \cdots, n\}$, where $n$ stands for the total number of varying light directions.
+A simplified version of the SFS energy is:
+\begin{equation}
+    \sum_{i} \sum_{c} \lVert I_{i,c} - \rho_c \mathbf{s}_{i,c}^\top\tilde{\mathbf{n}}\rVert_2^2 
+\end{equation}
+To further simplify, we define $\mathbb{I}_c$ and $\mathbb{S}_c$ as:
+\begin{equation}\label{eq:robust_energy_prepare}
+\mathbb{I}_c = \begin{pmatrix} I_{1,c} \\ \vdots \\ I_{n,c} \end{pmatrix}  \; \; \mathbb{S}_c = \begin{pmatrix} \mathbf{s}_{1,c}^\top \\ \vdots \\ \mathbf{s}_{n,c}^\top \end{pmatrix}
+\end{equation}
+and based on Eq.~\ref{eq:robust_energy_prepare}, we can get:
+\begin{equation}
+    \sum_{c} \lVert \mathbb{I}_c - \rho_c \mathbb{S}_{c}\tilde{\mathbf{n}}\rVert_2^2 
+\end{equation}
+Now the overall energy for our robust lighting variation method is characterized as:
+
+\begin{equation}\label{eq:robost_energy}
+    E(\rho, z, \mathbb{S}) = \sum_{c} \lVert \mathbb{I}_c - \rho_c \mathbb{S}_{c}\tilde{\mathbf{n}}\rVert_2^2 + \lambda_{z}\lVert z - z_0 \rVert_2^2
+\end{equation}
+As we can notice, the new overall energy is extremely simple with only one SFS term and one depth fidelity term.
+And we have found out that $\lambda_z = 0.01$ works really well for all cases, which means we don't need to tune any parameters.
 
 \textbf{Light estimation}
 Similar to Eq.~\ref{eq:rgbd_light_estimate}, we refine the SH parameters for each input image $i$ in each iteration using the formulation below:
 
 \begin{equation}\label{eq:robust_light_estimate}
-\min_{\mathbf{s}_i} \; \lVert I_i - \rho \boldsymbol{\cdot} \mathbf{s}_i^\top \tilde{\mathbf{n}} \rVert^2_2 \; \; i \in \{1, \cdots, n\}
-\end{equation}
-where
-\begin{equation}
-\mathbf{s}_i = \begin{pmatrix}\mathbf{l}_i \\ \varphi_i \end{pmatrix}   \; \; \tilde{\mathbf{n}} = \begin{pmatrix}\mathbf{n} \\ 1\end{pmatrix}  
+\min_{\mathbb{S}} \; \lVert \mathbb{I} - \rho \boldsymbol{\cdot} \mathbb{S} \tilde{\mathbf{n}} \rVert^2_2
 \end{equation}
 
 \textbf{Albedo estimation}
