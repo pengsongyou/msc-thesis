@@ -434,8 +434,33 @@ where the weight $\omega = \begin{pmatrix} \omega_R\\ \omega_G\\ \omega_B \end{p
 \omega_c = \exp(- \frac{\sigma_c ||\nabla I_c||^2}{\max ||\nabla I_c||^2}), \quad c \in \{R,G,B\}
 \end{equation}
 $\sigma_c$ is a tuning parameter for each channel $c$.  
-
+We can notice from Fig.~\ref{fig:ratio_albedo_demo} the importance of imposing the weight $\omega$.
+Without the weight, the isotropic smoothness regularization will not take care of the boundary of the albedo, which leads to the bad depth enhancement.
 %$$$$$$$$$$$$$$$$
+
+\begin{figure}[!ht]
+\centering
+\setlength{\tabcolsep}{0.1em} % column spacing
+ {\renewcommand{\arraystretch}{0.6}% row spacing
+\begin{tabular}{c|c c c}
+   \includegraphics[height = 0.32\linewidth]{figures/methodology/ratio_syn_rgb.pdf} \hspace{0.1em}
+   &\hspace{0.1em}
+   \includegraphics[height = 0.32\linewidth]{figures/methodology/ratio_syn_albedoGT.pdf} &
+   \includegraphics[height = 0.32\linewidth]{figures/methodology/ratio_syn_albedoNR.pdf} &
+   \includegraphics[height = 0.32\linewidth]{figures/methodology/ratio_syn_albedoR.pdf} \\
+   
+   \includegraphics[height = 0.32\linewidth]{figures/methodology/ratio_syn_shapeInput.pdf} \hspace{0.1em}
+   &\hspace{0.1em}
+   \includegraphics[height = 0.32\linewidth]{figures/methodology/ratio_syn_shapeGT.pdf} &
+   \includegraphics[height = 0.32\linewidth]{figures/methodology/ratio_syn_shapeNR.pdf} &
+   \includegraphics[height = 0.32\linewidth]{figures/methodology/ratio_syn_shapeR.pdf} \\
+   {Input} & {Ground truth} & {No weight} &{With weight}                 
+ \end{tabular}}
+\caption{Illustrations for the importance of the weight $\omega$ inside regularization term in Eq.~\ref{eq:ratio_albedo_refine} when estimating the albedo. Top: first one is the input color image and the rest three are the albedos. Bottom: 3D shape from depth. Noted that the light parameter is given.}
+\label{fig:ratio_albedo_demo}
+\end{figure}
+
+
 There are three interesting aspects about the albedo estimation which worth having a few more words:
 \begin{enumerate}
     \item One observation about Eq.~\ref{eq:rho_matrix} is that, if the SH parameters are the same among the three channels, the right side of the equal sign is or close to 0. 
@@ -446,8 +471,6 @@ There are three interesting aspects about the albedo estimation which worth havi
     This is due to the fact that there also exist the RGB albedos in $\mathbf{b}_{\rho}$, so $\rho = 0$ will become the solution of our ratio model term.
     Therefore, adding the data term can not only avoid such problem, but help refine the albedo iteratively. 
 \end{enumerate}
-
-{\color{red} need to add the albedo estimation 1, ground truth, 2, without regularization, 3, without weighting, 4 with weighting}
 
 \textbf{Depth refinement}:
 After acquiring the color albedo in time step $t$, we are going to refine the depth with the help of the ratio model.
@@ -521,7 +544,7 @@ Still, there exist some defects for our new RGB ratio model.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Proposed method II: Robust Lighting Variation Model}
+\section{Proposed method II: Robust Multi-Light Model}
 
 %----------------------------------------------
 \subsection{Inspiration}
@@ -575,7 +598,7 @@ A simplified version of the SFS energy is:
     \sum_{i} \sum_{c} \lVert\rho_c \cdot \tilde{\mathbf{n}}\mathbf{s}_{i,c} -  I_{i,c} \rVert_2^2 
 \end{equation}
 
-Now the overall energy for our proposed robust lighting variation method is characterized as:
+Now the overall energy for our proposed robust multi-light method is characterized as:
 
 %$$$$$$$$$$$$$$$$$
 \begin{equation}\label{eq:robust_energy}
@@ -623,7 +646,7 @@ The energy for the albedo estimation from the overall energy looks like this:
 $ \mathbf{A}_{\rho_c} \in \mathbb{R}^{mn \times m}$ is the stack of $n$ diagonal matrices $\text{diag}(\tilde{\mathbf{n}} \cdot \mathbf{s}_{i,c})$, where $\text{diag} : \mathbb{R}^m \rightarrow \mathbb{R}^{m\times m}, i \in \{1, \cdots, n\}$.
 A toy example of $\mathbf{A}_{\rho_c}$ with $n=6$ is illustrated in Fig.~\ref{fig:robust_matrix2}.
 
-\begin{figure}[!htbp]
+\begin{figure}[!ht]
 \centering
 \subfigure[An example of $\mathbb{A}_{\mathbb{S}_c}$ with $n = 6$. The yellow part represents the repetition of matrix $\tilde{\mathbf{n}} \odot \rho_c$]{\label{fig:robust_matrix1}\includegraphics[width=0.3\linewidth]{figures/methodology/As_matrix.pdf}}
 \quad
@@ -734,11 +757,13 @@ After all the derivations, we finally model our energy for the depth enhancement
  \begin{equation}\label{eq:robust_depth_estimate}
 	\min_{z} \; \lVert  \mathbf{A}_{z}z - \mathbf{b}_z\rVert^2_2 + \lambda_{z}\lVert z - z_0 \rVert_2^2
 \end{equation}
+The conjugate gradient (CG) method has been applied to optimize all three sub energy.
+And the structure of the proposed algorithm is described below:
  %$$$$$$$$$$$$$$$$$
-The structure of the proposed algorithm is described below:
+
 \begin{algorithm}[!htbp]
 	\begin{algorithmic}[1] 
-  		\caption{\textbf{Robust Light Variation Model Method}}
+  		\caption{\textbf{Robust Multi-Light Model Method}}
 		\label{alg:robust}
 		 \renewcommand{\algorithmicrequire}{\textbf{Input:}}
 		 \renewcommand{\algorithmicensure}{\textbf{Output:}}
@@ -771,11 +796,11 @@ In this section, we will present our approach of the combination of the photomet
 The scale factor between the RGB and depth image is around $2$ for ASUS XtionPro Live, so we can at least enlarge our map two times larger than the original size, which means the refined depth resolution will be $1280\times960$.
  And we assume that the input depth image has been registered well (done easily with OpenNI) such that the upsampled depth $Z$ is aligned with the large RGB image after simple interpolation.
 
-The whole process follows our Robust lighting variation model method described in Alg.~\ref{alg:robust}.
+The whole process follows our robust multi-light model method described in Alg.~\ref{alg:robust}.
 In the light, albedo estimation part, the energy in Eq.~\ref{eq:robust_light_estimate2} and Eq.~\ref{eq:robust_albedo_estimate} are direct used. we only replace the surface normal $\mathbf{n}(z)$ with $\mathbf{N}(Z)$ when we build $\mathbf{A}_{\mathbf{s}_c}$ and $\mathbf{A}_{\rho_c}$. 
 When refining the depth with Eq.~\ref{eq:robust_depth_estimate}, $Z$ is also used to replace $z$ during the construction of $\mathbf{A}_z$ and $\mathbf{b}_z$, and now denoted by $\mathbf{A}_Z$ and $\mathbf{b}_Z$.
  
- \begin{figure}[!htbp]
+ \begin{figure}[!ht]
 \centering
 \subfigure[One input image $(960\times1280)$]{\includegraphics[width=0.32\linewidth]{figures/methodology/sr_rgb_big.pdf}}
 \subfigure[Estimated albedo $(960\times1280)$]{\includegraphics[width=0.32\linewidth]{figures/methodology/sr_albedo.pdf}}
@@ -783,7 +808,7 @@ When refining the depth with Eq.~\ref{eq:robust_depth_estimate}, $Z$ is also use
 \subfigure[Input depth image $(480\times640)$]{\includegraphics[width=0.23\linewidth]{figures/methodology/sr_shape_before.pdf}}
 \quad
 \subfigure[Smoothed depth image $(480\times640)$]{\includegraphics[width=0.23\linewidth]{figures/methodology/sr_shape_smooth.pdf}}
-\subfigure[Refined super-resolution depth $(480\times640)$]{\includegraphics[width=0.46\linewidth]{figures/methodology/sr_shape_after.pdf}}
+\subfigure[Refined super-resolution depth $(960\times1280)$]{\includegraphics[width=0.46\linewidth]{figures/methodology/sr_shape_after.pdf}}
 \caption{Results of the super-resolution depth of a paper bag. Input depth size is $480\times 640$, and the refined depth's is $960 \times 1280$.}
 \label{fig:robust_sr}
 \end{figure}
@@ -796,4 +821,3 @@ The super-resolution depth refinement energy now is changed to:
 \end{equation}
  %$$$$$$$$$$$$$$$$$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
