@@ -35,16 +35,27 @@ Three various albedo scenarios are considered:
 \end{itemize}
 
 
-To simulate the natural scene illumination, we assume the RGB lighting as frontal directions, so the first-order SH parameters are modelled as $\mathbf{s}_R = \mathbf{s}_G = \mathbf{s}_B = \begin{bmatrix} 0 & 0& -1 & 0.2\end{bmatrix}^\top$.
+To simulate the natural scene illumination, we assume the RGB lighting as frontal directions, so the first-order SH parameters are modelled as:
+\begin{equation*}
+    \mathbf{s}_R = \mathbf{s}_G = \mathbf{s}_B = \begin{bmatrix} 0 & 0& -1 & 0.2\end{bmatrix}^\top
+    \qquad
+    \raisebox{-0.7cm}{\includegraphics[height=0.1\textwidth]{figures/result/light9.pdf}}
+\end{equation*}
+
 And then, in order to reproduce the LED configuration for the proposed RGB ratio model, we define the 3 lighting directions as:
-\begin{align*}
-    \mathbf{s}_R &= \begin{bmatrix} 0 &0 &-1 &0.15\end{bmatrix}^\top\\
-    \mathbf{s}_G &= \begin{bmatrix} 0.3 & 0.2 & -1 & 0.25\end{bmatrix}^\top\\
-    \mathbf{s}_B &= \begin{bmatrix} -0.2 & 0.3 & -1 & 0.2\end{bmatrix}^\top\\
-\end{align*}
+\begin{equation*}
+    \begin{split}
+        \mathbf{s}_R &= \begin{bmatrix} 0 &0 &-1 &0.15\end{bmatrix}^\top\\
+        \mathbf{s}_G &= \begin{bmatrix} 0.3 & 0.2 & -1 & 0.25\end{bmatrix}^\top\\
+        \mathbf{s}_B &= \begin{bmatrix} -0.2 & 0.3 & -1 & 0.2\end{bmatrix}^\top\\
+    \end{split}
+    \qquad\qquad\quad
+    \raisebox{-0.7cm}{\includegraphics[height=0.1\textwidth]{figures/result/light_color.pdf}}
+\end{equation*}
 Finally, we need to produce a sequence of same images with various directional lights for our robust multi-light model.
 A "lighting" matrix $L$ and the corresponding positions of 10 point light sources can be illustrated as below, where red points represent the light positions.
 \begin{equation*}
+\begin{split}
 L = 
     \begin{pmatrix}
         0.5 & 0 & -1 & 0.2\\
@@ -59,10 +70,33 @@ L =
         0.45 & 0.2 & -1 & 0.2\\
     \end{pmatrix}^\top 
     \qquad 
-    \raisebox{-3.2cm}{\includegraphics[height=0.45\textwidth]{figures/result/example_multi_light.eps}}
+    &\raisebox{-2.8cm}{\includegraphics[height=0.4\textwidth]{figures/result/example_multi_light.eps}}\\
+    \raisebox{-0.4cm}{\includegraphics[height=0.1\textwidth]{figures/result/light9.pdf}}    
+    \raisebox{-0.4cm}{\includegraphics[height=0.1\textwidth]{figures/result/light1.pdf}}
+    \raisebox{-0.4cm}{\includegraphics[height=0.1\textwidth]{figures/result/light2.pdf}}
+    \raisebox{-0.4cm}{\includegraphics[height=0.1\textwidth]{figures/result/light3.pdf}}
+    \raisebox{-0.4cm}{\includegraphics[height=0.1\textwidth]{figures/result/light4.pdf}}
+    &\raisebox{-0.4cm}{\includegraphics[height=0.1\textwidth]{figures/result/light5.pdf}}
+    \raisebox{-0.4cm}{\includegraphics[height=0.1\textwidth]{figures/result/light6.pdf}}
+    \raisebox{-0.4cm}{\includegraphics[height=0.1\textwidth]{figures/result/light7.pdf}}
+    \raisebox{-0.4cm}{\includegraphics[height=0.1\textwidth]{figures/result/light8.pdf}}
+    \raisebox{-0.4cm}{\includegraphics[height=0.1\textwidth]{figures/result/light10.pdf}}
+    \end{split}
 \end{equation*}
 
+With the 3 different albedos and all the pre-defined lights, we can create the synthetic color images like the first row in Fig.~\ref{fig:result_syn_comp}.
 
+\textbf{Metrics}
+Two metrics have been defined to quantitatively evaluate the performance of depth refinement: root mean square error (RMSE) and mean angular error (MAE).
+Since we have already had the input rough depth and the ground truth depth as shown in Fig.~\ref{fig:comp_syn_input}, we can define two metrics as follows.
+
+Assuming $z_g, N_g$ and $z, N$ are the ground truth and the refined depth and normal respectively, $m$ the total number of pixels inside the given mask $\mathcal{M}$ and $i$ the index inside the mask, a loosely definition is: 
+\begin{align}
+    e_{RMSE} &= \sqrt{\frac{\sum\limits_{i}^{m}{(z(i) - z_g(i))^2}}{m}}\\
+    e_{MAE} &= \frac{\sum\limits_{i}^{m} \arccos (N(i) \cdot N_g(i))}{m}
+\end{align}
+The RMSE reflects refined depth quality, while the MAE illustrates if the refined object's shape is similar to the real one. 
+It should be mentioned that $e_{MAE}$ gives values in radians but we convert it to degrees.
 
 \begin{table}[!ht]
 \caption{Quantitative evaluations among 4 methods. RMSE and MAE are in pixels and degrees respectively. "No smooth" means no laplacian smoothness term in depth enhancement.}
@@ -71,8 +105,8 @@ L =
 \centering
 \begin{tabular}{lllllll}
                                        & \multicolumn{2}{c}{Simple RGB}                     & \multicolumn{2}{c}{Pattern}                        & \multicolumn{2}{c}{Complicated Pattern}            \\\hline
-Method                                 & \multicolumn{1}{c}{RMSE} & \multicolumn{1}{c}{MAE} & \multicolumn{1}{c}{RMSE} & \multicolumn{1}{c}{MAE} & \multicolumn{1}{c}{RMSE} & \multicolumn{1}{c}{MAE} \\\hline
-Reference                              & 3.3305                   & 16.3096                 & 3.3305                   & 16.3096                 & 3.3305                   & 16.3096                 \\
+Method                                 & \multicolumn{1}{c}{RMSE} & \multicolumn{1}{c}{MAE} & \multicolumn{1}{c}{RMSE} & \multicolumn{1}{c}{MAE} & \multicolumn{1}{c}{RMSE} & \multicolumn{1}{c}{MAE} \\\hline\hline
+Input reference                              & 3.3305                   & 16.3096                 & 3.3305                   & 16.3096                 & 3.3305                   & 16.3096                 \\
 RGBD-Fusion\cite{or2015rgbd} (no smooth)                       & 3.3418                   & 18.9115                 & 3.3872                   & 27.0026                 & 3.3411                   & 25.6574  		\\
 RGBD-Fusion\cite{or2015rgbd} & 3.1751                   & 17.2197                 & 3.1890                   & 18.4722                 & 3.1708                   & 18.0850                 \\ 
 Fusion-Like (no smooth)                  & 3.3475                   & 17.5911                 & 3.3459                   & 23.4808                 & 3.3898                   & 35.2610                 \\
@@ -82,35 +116,18 @@ Robust multi-light model               & 3.4025                   & 6.6640      
 \end{tabular}
 \end{table}
 
-With the 3 different albedos and all the pre-defined lights, we can create the synthetic color images like the first row in Fig.~\ref{fig:result_syn_comp}.
-Also, since both the rough and ground truth depth are given (Fig.~\ref{fig:comp_syn_input}) for the synthetic dataset, the comparison are ready.
-
-\textbf{Metrics}
-Two metrics have been defined to quantitatively evaluate the performance of depth refinement: root mean square error (RMSE) and mean angular error (MAE).
-Assuming $z_g, N_g$ and $z, N$ are the ground truth and the refined depth and normal respectively, $m$ the total number of pixels inside the given mask $\mathcal{M}$ and $i$ the index inside the mask, we can loosely define these two metrics as follows. It should be mentioned that $e_{MAE}$ gives values in radians but we convert it to degrees.
-\begin{align*}
-    e_{RMSE} &= \sqrt{\frac{\sum\limits_{i}^{m}{(z(i) - z_g(i))^2}}{m}}\\
-    e_{MAE} &= \frac{\sum\limits_{i}^{m} \arccos (N(i) \cdot N_g(i))}{m}
-\end{align*}
-
-
-
 
 According to table~\ref{tab:parameter_setup},~\ref{tab:comp_syn_eval} and Fig.~\ref{fig:result_syn_comp}, there are some interesting observations:
 \begin{itemize}
     \item Our RGBD-Fusion Like method uses less parameters (5 against 8) but achieves almost the same results as the original paper. 
-    \item The Laplacian smoothness term in the depth refinement part of RGBD-Fusion method has a huge impact on the refined results. In contrast, both our proposed methods have no smoothness term but gives equal or better results.
-    \item Single depth image refinement methods (RGBD-Fusion and RGB ratio model) have a chance to acquire satisfying results only when the albedo is simple. 
-    They will fail when the albedo gets complex.
-    This is due to the fact that the albedo estimation in single depth image refinement methods highly depends on the regularization terms which prefers piecewise smooth, but this is not in line with most real-world cases.  
-    \item Our robust multi-light method has a really impressive ability to handle extremely complicated cases. The albedo estimation
+    \item The Laplacian smoothness term in the depth enhancement energy of RGBD-Fusion method has a huge impact on the refined results. In contrast, both our proposed methods have no smoothness term but gives equal or better results.
+    \item Single depth image refinement methods (RGBD-Fusion and RGB ratio model) have a chance to acquire satisfying results only when the albedo is elementary with several big color patches. 
+    However, they will fail and give even worse in terms of RMSE and MAE when the albedos get complex. 
+    Most of the small details on the albedo of "Pattern" and "Complicate Pattern" cannot be acquired, which leads to the wrong depth estimation.
+    This is due to the fact that the albedo estimation in these methods highly relies on the regularization terms which prefers piecewise smooth, but this does not meet the condition of most real-world objects.
+    \item It can be effortlessly noticed that our robust multi-light method has a strong ability to handle the cases with extremely complicated albedo. 
+    Instead of using any regularization for calculating the albedo, extra images with various light directions solve the overfitting problems of albedo and enable the albedo estimation with only the SFS term (Eq.~\ref{eq:robust_albedo_estimate}).
 \end{itemize}
-
-
-
-
-
-
 
 
 
@@ -120,7 +137,7 @@ According to table~\ref{tab:parameter_setup},~\ref{tab:comp_syn_eval} and Fig.~\
 \subfigure[Input depth]{\label{fig:robust_matrix1}\includegraphics[width=0.2\linewidth]{figures/result/comp_input_shape.pdf}}
 \qquad \qquad
 \subfigure[Ground truth depth]{\label{fig:robust_matrix2}\includegraphics[width=0.2\linewidth]{figures/result/comp_gt_shape.pdf}}
-\caption{The 3D shape of input rough depth and the ground truth depth.}
+\caption{The 3D shape of input rough depth and the ground truth depth for the quantitative evalution.}
 \label{fig:comp_syn_input}
 \end{figure}
 

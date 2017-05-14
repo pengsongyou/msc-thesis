@@ -255,7 +255,7 @@ And now the depth refinement problem in Eq.~\ref{eq:rgbd_depth_refine} is reform
 As long as the energy decreases in each iteration, the process is repeated.
 
 To sum up the approach in this section, it should be noted that the SFS term in the overall energy (Eq.~\ref{eq:rgbd_energy} was used as a core in all light, albedo and depth estimation.
-The whole process of RGBD-Like method has been described in Alg.~\ref{alg:rgbd_fusion}. 
+The whole process of RGBD-Like method has been described in Alg.~\ref{alg:rgbd_fusion} and some real-world results are shown in Fig.~\ref{fig:rgbd_illustration}.
 
 
 
@@ -280,6 +280,36 @@ The whole process of RGBD-Like method has been described in Alg.~\ref{alg:rgbd_f
 		  \ENSURE  Refined depth image $z^{(t)}$
 	\end{algorithmic}
 \end{algorithm}
+
+%&&&&&&&&&&&&&&&&&&&&&&&&&
+\begin{figure}[!ht]
+\centering
+\setlength{\tabcolsep}{0.1em} % column spacing
+ {\renewcommand{\arraystretch}{0.6}% row spacing
+\begin{tabular}{c|c c c}
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/rgbd_body_rgb.pdf} \hspace{0.05cm}
+   &
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/rgbd_body_shape_init.pdf} &
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/rgbd_body_shape_smooth.pdf} &
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/rgbd_body_shape.pdf} \\
+   
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/rgbd_face_rgb.pdf} \hspace{0.05cm}
+   &
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/rgbd_face_shape_init.pdf} &
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/rgbd_face_shape_smooth.pdf} &
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/rgbd_face_shape.pdf} \\
+   
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/rgbd_palm_rgb.pdf} \hspace{0.05cm}
+   &
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/rgbd_palm_shape_init.pdf} &
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/rgbd_palm_shape_smooth.pdf} &
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/rgbd_palm_shape.pdf} \\
+      {RGB image} & {Input depth} & {After pre-processing} &{Refined depth}                 
+ \end{tabular}}
+\caption{Illustrations for our implementation of RGBD-Fusion Like method. Top row is a T-shirt from~\cite{han2013high}. Middle and bottom row are author's face and palm.  }
+\label{fig:rgbd_illustration}
+\end{figure}
+%&&&&&&&&&&&&&&&&&&&&&&&&&
 
 
 %----------------------------------------------
@@ -524,6 +554,37 @@ Since estimating light with the proposed ratio model is a ill-posed problem, we 
 	\end{algorithmic}
 \end{algorithm}
 
+%&&&&&&&&&&&&&&&&&&&&&&&&&
+\begin{figure}[!ht]
+\centering
+\setlength{\tabcolsep}{0.1em} % column spacing
+ {\renewcommand{\arraystretch}{0.6}% row spacing
+\begin{tabular}{c|c c c}
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/ratio_shoe_rgb.pdf} 
+   &
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/ratio_shoe_shape_init.pdf} &
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/ratio_shoe_shape_smooth.pdf} &
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/ratio_shoe_shape.pdf} \\
+
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/ratio_shirt_rgb.pdf} 
+   &
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/ratio_shirt_shape_init.pdf} &
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/ratio_shirt_shape_smooth.pdf} &
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/ratio_shirt_shape.pdf} \\
+
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/ratio_vase_rgb.pdf}
+   &
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/ratio_vase_shape_init.pdf} &
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/ratio_vase_shape_smooth.pdf} &
+   \includegraphics[height = 0.19\linewidth]{figures/methodology/ratio_vase_shape.pdf} \\      {RGB image} & {Input depth} & {After pre-processing} &{Refined depth}                 
+ \end{tabular}}
+\caption{Illustrations for the depth refinement of our proposed RGB ratio model. It should be mentioned that the middle row was under the natural scene illumination and our method still works well.}
+\label{fig:ratio_illustration}
+\end{figure}
+%&&&&&&&&&&&&&&&&&&&&&&&&&
+
+
+
 %----------------------------------------------
 \subsection{Limitations}
 %----------------------------------------------
@@ -758,7 +819,7 @@ After all the derivations, we finally model our energy for the depth enhancement
 	\min_{z} \; \lVert  \mathbf{A}_{z}z - \mathbf{b}_z\rVert^2_2 + \lambda_{z}\lVert z - z_0 \rVert_2^2
 \end{equation}
 The conjugate gradient (CG) method has been applied to optimize all three sub energy.
-And the structure of the proposed algorithm is described below:
+And the structure of the proposed algorithm is described in Alg.~\ref{alg:robust} and one refined depth result is shown in Fig.~\ref{fig:robust_illustration}.
  %$$$$$$$$$$$$$$$$$
 
 \begin{algorithm}[!htbp]
@@ -783,6 +844,31 @@ And the structure of the proposed algorithm is described below:
 		  \ENSURE  Refined depth image $z^{(t)}$ and albedo $\rho^{(t)}$
 	\end{algorithmic}
 \end{algorithm}
+
+
+
+
+\begin{figure}[!ht]
+\centering
+\setlength{\tabcolsep}{0.2em} % column spacing
+ {\renewcommand{\arraystretch}{0.9}% row spacing
+\begin{tabular}{c| c c}
+   \includegraphics[height = 0.25\linewidth]{figures/methodology/robust_backpack_rgb.png}&
+   \includegraphics[height = 0.25\linewidth]{figures/methodology/robust_backpack_rho.png} &
+   \includegraphics[height = 0.25\linewidth]{figures/methodology/robust_backpack_normal.png} \\
+   {Backpack} & {Estimated albedo} & {Refined normal}\\
+   \includegraphics[height = 0.25\linewidth]{figures/methodology/robust_backpack_shape_init.pdf}&
+   \includegraphics[height = 0.25\linewidth]{figures/methodology/robust_backpack_shape_smooth.pdf}&
+   \includegraphics[height = 0.25\linewidth]{figures/methodology/robust_backpack_shape.pdf}\\
+{Input depth} & {After pre-processing} & {Refined depth}
+ \end{tabular}}
+\caption{Illustrations for our proposed robust multi-light method. Here $10$ images with various lighting conditions have been used, one of which is the top left RGB image.}
+\label{fig:robust_illustration}
+\end{figure}
+%&&&&&&&&&&&&&&&&&&&&&&&&&
+
+
+
 
 %----------------------------------------------
 \subsection{When super-resolution meets depth refinement}
