@@ -119,7 +119,7 @@ Robust multi-light model               & 3.4025                   & 6.6640      
 
 According to table~\ref{tab:parameter_setup},~\ref{tab:comp_syn_eval} and Fig.~\ref{fig:result_syn_comp}, there are some interesting observations:
 \begin{itemize}
-    \item Our RGBD-Fusion Like method uses less parameters (5 against 8) but achieves almost the same results as the original paper. 
+    \item Our RGBD-Fusion Like method uses less parameters than RGBD-Fusion~\cite{or2015rgbd} (5 against 8) but achieves almost the same results as the original paper. 
     \item The Laplacian smoothness term in the depth enhancement energy of RGBD-Fusion method has a huge impact on the refined results. In contrast, both our proposed methods have no smoothness term but gives equal or better results.
     \item Single depth image refinement methods (RGBD-Fusion and RGB ratio model) have a chance to acquire satisfying results only when the albedo is elementary with several big color patches. 
     However, they will fail and give even worse in terms of RMSE and MAE when the albedos get complex. 
@@ -224,7 +224,7 @@ According to table~\ref{tab:parameter_setup},~\ref{tab:comp_syn_eval} and Fig.~\
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   \end{tabular}
   }
-  \caption{Evaluation of our two proposed methods RGB ratio and Robust Multi-Light method against our implementaion of RGBD-Fusion~\cite{or2015rgbd}, in three different albedos from simple to complicated. Our proposed methods outperform RGBD-Fusion in all tests with respect to both RMSE and MAE.}
+  \caption{Evaluation of our two proposed methods RGB ratio and Robust Multi-Light method against our implementaion of RGBD-Fusion~\cite{or2015rgbd}, in three different albedos from simple to complicated. Our proposed methods outperform RGBD-Fusion in all tests with respect to both RMSE and MAE. The reference errors of input are 3.35 for RMSE and 16.75 for MAE.}
   \label{fig:result_syn_comp}
 \end{figure}
 
@@ -237,9 +237,80 @@ try to add noise on some of the images in the synthetic dataset and check the ef
 %----------------------------------------------
 \subsection{Complicated albedo objects}
 %----------------------------------------------
+
+%&&&&&&&&&&&&&&&&&&&&&&&&&
+\begin{figure}[!ht]
+\centering
+\setlength{\tabcolsep}{0.1em} % column spacing
+ {\renewcommand{\arraystretch}{1.6}% row spacing
+\begin{tabular}{c|c c}
+   \includegraphics[height = 0.24\linewidth]{figures/result/robust_padback_rgb.pdf} 
+   &
+   \includegraphics[height = 0.24\linewidth]{figures/result/rgbd_padback_normal.pdf} &
+   \includegraphics[height = 0.24\linewidth]{figures/result/robust_padback_normal.pdf} \\
+
+   \includegraphics[height = 0.24\linewidth]{figures/result/robust_padback_shape_init.pdf} 
+   &
+   \includegraphics[height = 0.24\linewidth]{figures/result/rgbd_padback_shape.pdf} &
+   \includegraphics[height = 0.24\linewidth]{figures/result/robust_padback_shape.pdf}\\
+\hline
+   \includegraphics[height = 0.24\linewidth]{figures/result/robust_patternShirt_rgb.png} 
+   &
+   \includegraphics[height = 0.24\linewidth]{figures/result/rgbd_patternShirt_normal.png} &
+   \includegraphics[height = 0.24\linewidth]{figures/result/robust_patternShirt_normal.png} \\
+
+   \includegraphics[height = 0.24\linewidth]{figures/result/robust_patternShirt_shape_init.pdf} 
+   &
+   \includegraphics[height = 0.24\linewidth]{figures/result/rgbd_patternShirt_shape.pdf} &
+   \includegraphics[height = 0.24\linewidth]{figures/result/robust_patternShirt_shape.pdf}\\
+
+
+   {Input} & {RGBD-Fusion~\cite{or2015rgbd}} & {Proposed Multi-Light Model}               
+ \end{tabular}}
+\caption{Comparison our multi-light model with RGBD-Fusion in two specular objects. On the first column, the RGB images of the folder and the vase are ones of  the 10 various illuminations. First and third rows correspond to the surface normal from the refined depth, while second and fourth are the refined depth.}
+\label{fig:comp_complicated_albedo}
+\end{figure}
+%&&&&&&&&&&&&&&&&&&&&&&&&&
+
 %----------------------------------------------
 \subsection{Specular objects (non-Lambertian object)}
 %----------------------------------------------
+
+
+%&&&&&&&&&&&&&&&&&&&&&&&&&
+\begin{figure}[!ht]
+\centering
+\setlength{\tabcolsep}{0.1em} % column spacing
+ {\renewcommand{\arraystretch}{1.6}% row spacing
+\begin{tabular}{c|c c}
+   \includegraphics[height = 0.24\linewidth]{figures/result/robust_folder_rgb.pdf} 
+   &
+   \includegraphics[height = 0.24\linewidth]{figures/result/rgbd_folder_normal.pdf} &
+   \includegraphics[height = 0.24\linewidth]{figures/result/robust_folder_normal.pdf} \\
+
+   \includegraphics[height = 0.22\linewidth]{figures/result/robust_folder_shape_init.pdf} 
+   &
+   \includegraphics[height = 0.22\linewidth]{figures/result/rgbd_folder_shape.pdf} &
+   \includegraphics[height = 0.22\linewidth]{figures/result/robust_folder_shape.pdf}\\
+\hline
+   \includegraphics[height = 0.24\linewidth]{figures/result/robust_vase_rgb.pdf} 
+   &
+   \includegraphics[height = 0.24\linewidth]{figures/result/rgbd_vase_normal.pdf} &
+   \includegraphics[height = 0.24\linewidth]{figures/result/robust_vase_normal.pdf} \\
+
+   \includegraphics[height = 0.24\linewidth]{figures/result/robust_vase_shape_init.pdf} 
+   &
+   \includegraphics[height = 0.24\linewidth]{figures/result/rgbd_vase_shape.pdf} &
+   \includegraphics[height = 0.24\linewidth]{figures/result/robust_vase_shape.pdf}\\
+
+
+   {Input} & {RGBD-Fusion~\cite{or2015rgbd}} & {Proposed Multi-Light Model}               
+ \end{tabular}}
+\caption{Comparison our multi-light model with RGBD-Fusion in two specular objects. On the first column, the RGB images of the folder and the vase are ones of  the 10 various illuminations. First and third rows correspond to the surface normal from the refined depth, while second and fourth are the refined depth.}
+\label{fig:comp_complicated_albedo}
+\end{figure}
+%&&&&&&&&&&&&&&&&&&&&&&&&&
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

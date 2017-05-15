@@ -820,6 +820,7 @@ After all the derivations, we finally model our energy for the depth enhancement
 \end{equation}
 The conjugate gradient (CG) method has been applied to optimize all three sub energy.
 And the structure of the proposed algorithm is described in Alg.~\ref{alg:robust} and one refined depth result is shown in Fig.~\ref{fig:robust_illustration}.
+More examples can be found in chapter~\ref{chap:result}.
  %$$$$$$$$$$$$$$$$$
 
 \begin{algorithm}[!htbp]
@@ -862,7 +863,7 @@ And the structure of the proposed algorithm is described in Alg.~\ref{alg:robust
    \includegraphics[height = 0.25\linewidth]{figures/methodology/robust_backpack_shape.pdf}\\
 {Input depth} & {After pre-processing} & {Refined depth}
  \end{tabular}}
-\caption{Illustrations for our proposed robust multi-light method. Here $10$ images with various lighting conditions have been used, one of which is the top left RGB image.}
+\caption{Illustrations for our proposed robust multi-light method. Here $n = 10$ images with various lighting conditions have been used, one of which is the top left RGB image. }
 \label{fig:robust_illustration}
 \end{figure}
 %&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -873,8 +874,8 @@ And the structure of the proposed algorithm is described in Alg.~\ref{alg:robust
 %----------------------------------------------
 \subsection{When super-resolution meets depth refinement}
 %----------------------------------------------
-For most of the well-known comsumer RGB-D cameras, the depth resolution is far smaller than the RGB resolution.
-For instance, ASUS XtionPro Live can acquire $1280\times 1024$ RGB images and $640\times 480$ depth images. Microsoft Kinect 2.0 owns $1920\times1080$ RGB resolution but only $512\times424$ depth one, and Intel RealSense R200 has a $1920\times1080$ RGB camera while the depth reoslution is $640\times 480$.
+For most of the well-known comsumer RGB-D cameras the depth resolution is far smaller than the RGB resolution.
+For instance, ASUS Xtion Pro Live can acquire $1280\times 1024$ RGB images and $640\times 480$ depth images. Microsoft Kinect 2.0 owns $1920\times1080$ RGB resolution but only $512\times424$ depth one, and Intel RealSense R200 has a $1920\times1080$ RGB camera while the depth reoslution is $640\times 480$.
 It would be very useful if we can not only refine the depth map in its original scale, but close to the RGB resolution.  
 
 In this section, we will present our approach of the combination of the photometric stereo and super-resolution, with the help of which we will provide satisfying high-quality and high-resolution depth maps. 
@@ -882,11 +883,28 @@ In this section, we will present our approach of the combination of the photomet
 The scale factor between the RGB and depth image is around $2$ for ASUS XtionPro Live, so we can at least enlarge our map two times larger than the original size, which means the refined depth resolution will be $1280\times960$.
  And we assume that the input depth image has been registered well (done easily with OpenNI) such that the upsampled depth $Z$ is aligned with the large RGB image after simple interpolation.
 
-The whole process follows our robust multi-light model method described in Alg.~\ref{alg:robust}.
-In the light, albedo estimation part, the energy in Eq.~\ref{eq:robust_light_estimate2} and Eq.~\ref{eq:robust_albedo_estimate} are direct used. we only replace the surface normal $\mathbf{n}(z)$ with $\mathbf{N}(Z)$ when we build $\mathbf{A}_{\mathbf{s}_c}$ and $\mathbf{A}_{\rho_c}$. 
-When refining the depth with Eq.~\ref{eq:robust_depth_estimate}, $Z$ is also used to replace $z$ during the construction of $\mathbf{A}_z$ and $\mathbf{b}_z$, and now denoted by $\mathbf{A}_Z$ and $\mathbf{b}_Z$.
+Assuming the acquired small depth and the super-resolution depth are denoted as $z$ and $Z$ respectively.
+A standard single depth image super-resolution problem can be represented like in~\cite{yang2010image}:
+\begin{equation}\label{eq:sr_equation}
+z = KFZ
+\end{equation}
+where $K$ represents a downsampling operator and $F$ a blurring filter.
+For the sake of simplicity we don't consider the filter $F$ but only a simple downsampling operator.
+If we the $z$ and $Z$ are vectorized, the $K$ turns to a matrix, which we choose a native 4-connected isotropic downsampling matrix.
+
+In the light, albedo estimation part, the energy in Eq.~\ref{eq:robust_light_estimate2} and Eq.~\ref{eq:robust_albedo_estimate} are directly used. When we build $\mathbf{A}_{\mathbf{s}_c}$ and $\mathbf{A}_{\rho_c}$, the surface normal $\mathbf{n}(z)$ is replaced with $\mathbf{N}(Z)$ which is the normal of the large depth. 
+However, the depth enhancement part with Eq.~\ref{eq:robust_depth_estimate} should be adapted to the super-resolution framework. 
+As we know, the super-resolution equation in Eq.~\ref{eq:sr_equation} is ill-posed so our SFS term can be treated as the regularization term.
+Now, $Z$ is again used to replace $z$ during the construction of $\mathbf{A}_z$ and $\mathbf{b}_z$, which are now denoted by $\mathbf{A}_Z$ and $\mathbf{b}_Z$.
  
- \begin{figure}[!ht]
+With the input small depth $z_0\in\mathcal{R}^m$ and a downsampling kernal $K \in \mathbb{R}^{m\times M}$ where $M$ and $m$ represent the number of pixel within the big mask and the small mask respectively, The super-resolution depth refinement energy now is changed to:
+ %$$$$$$$$$$$$$$$$$
+ \begin{equation}\label{eq:robust_depth_estimate}
+	\min_{Z} \; \lVert  \mathbf{A}_{Z}Z - \mathbf{b}_Z\rVert^2_2 + \lambda_{z}\lVert K\cdot Z - z_0 \rVert_2^2
+\end{equation}
+ %$$$$$$$$$$$$$$$$$
+ After optimizing this energy, we will acquired super-resolution version refined depth, as illustrated in Fig.~\ref{fig:robust_sr}.
+  \begin{figure}[!htbp]
 \centering
 \subfigure[One input image $(960\times1280)$]{\includegraphics[width=0.32\linewidth]{figures/methodology/sr_rgb_big.pdf}}
 \subfigure[Estimated albedo $(960\times1280)$]{\includegraphics[width=0.32\linewidth]{figures/methodology/sr_albedo.pdf}}
@@ -898,12 +916,7 @@ When refining the depth with Eq.~\ref{eq:robust_depth_estimate}, $Z$ is also use
 \caption{Results of the super-resolution depth of a paper bag. Input depth size is $480\times 640$, and the refined depth's is $960 \times 1280$.}
 \label{fig:robust_sr}
 \end{figure}
+
+
  
-For the data fidelity term, it needs to be changed and adapted to the input small depth $z_0$ with a downsampling kernal $K \in \mathbb{R}^{m\times M}$, where $M$ and $m$ represent the number of pixel within the big mask and the small mask respectively.
-The super-resolution depth refinement energy now is changed to:
- %$$$$$$$$$$$$$$$$$
- \begin{equation}\label{eq:robust_depth_estimate}
-	\min_{Z} \; \lVert  \mathbf{A}_{Z}Z - \mathbf{b}_Z\rVert^2_2 + \lambda_{z}\lVert K\cdot Z - z_0 \rVert_2^2
-\end{equation}
- %$$$$$$$$$$$$$$$$$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
