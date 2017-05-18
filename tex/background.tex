@@ -1,6 +1,4 @@
 \chapter{Background} \label{chap:background}
-Joint estimation of depth, reflectance and illumination for depth refinement
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{RGB-D Cameras}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -8,24 +6,27 @@ Joint estimation of depth, reflectance and illumination for depth refinement
 %----------------------------------------------
 \subsection{General}
 %----------------------------------------------
-
-The RGB-D camera can return a color image which is usually in RGB color space, and a depth map, every pixel of which reflects the real-world distance between the camera and the corresponding position of the pixel.
+The RGB-D camera has been widely applied in many modern computer vision areas, for example 3D reconstruction~\cite{newcombe2011kinectfusion}, visual odometry and mapping on quadrocopter~\cite{huang2017visual} and visual SLAM algorithms~\cite{engelhard2011real}. 
+A RGB-D camera return a color image which is usually in RGB color space, and a depth map, every pixel of which reflects the real-world distance between the camera and the corresponding position of the pixel.
 Depending on the technologies used to measure the depth information, the RGB-D camera can be divided to passive and active~\cite{kerl2012msc}.
 
-The so called passive RGBD-camera usually contain two RGB cameras with a known translation between them.
+The so called passive RGBD-camera usually contains two RGB cameras with a known translation between them.
 After taking one picture for each, the features in two pictures are matched and then the triangulation is applied to obtain the depth.
 An illustration is shown in Fig.~\ref{fig:rgbd_camera_passive}.
 
-Active technologies usually emit lights to the environment so it can still acquire the depth images for the totally dark indoor scenario.
+Active technologies usually emit lights to the environment so it has the capability of acquiring depth images in a totally dark indoor scenario.
 They can be furthered categorized as time of flight (ToF) or a structured light approach.
 
-ToF camera calculate the depth in each pixel by measuring the time delay between the emission and the reflected time.
-One type of ToF cameras emit the pulsed-light and the others emits modulated-light.
-The Microsoft Kinect 2.0 and IFM Efector are two examples of ToF camera.
+A ToF camera calculates the depth in each pixel by measuring the delay between the emission and the reflected time.
+ToF cameras typically emit either pulsed light or modulated light.
+The Microsoft Kinect 2.0 and IFM Efector are two examples of the ToF camera.
 
 The RGB-D cameras with the structured light use a projector for a known pattern. 
-Since the transformation between the camera the projector is known as well, a camera observes the projected pattern and then triangulate to calculate the depth.
+Since the transformation between the camera the projector is pre-given, a camera observes the projected pattern and then triangulates to calculate the depth (Fig.~\ref{fig:rgbd_camera_active}).
 The ASUS Xtion Pro Live, Intel RealSense R200 and Ensenso are several well-known cameras using structured lights.
+It should be noted that many active stereo cameras project infrared (IR) lights. 
+Due to the fact that sun is a source of infrared lights, these cameras are limited the usage only in the indoor environment.
+
 
 \begin{figure}[!htbp]
 \centering
@@ -48,28 +49,30 @@ The ASUS Xtion Pro Live, Intel RealSense R200 and Ensenso are several well-known
 \caption{The structure of ASUS Xtion Pro Live and the RGB and depth images of an indoor scene acquired by it.}
 \label{fig:asus_illustration}
 \end{figure}
-The ASUS Xtion Pro Live camera has two cameras and a projector as shown in Fig.~\ref{fig:asus_structure}.
-Based on the official website, it provides the RGB image with the maximum resolution of $1280\times1024$, and the depth can be alternated either VGA resolution ($640\times480$ with 30fps) or QVGA ($320\times240$ with 60fps). 
-Its depth ranges from 0.8 to 3.5m, but we found in the experiments that the blind area was around 0.5m.  
-Xtion Pro Live has been used throughout our experiments.
-When the depth super-resolution is required, the RGB images have the resolution of $1280\times1024$, otherwise we keep the same resolution as the depth ($640\times480$).
-Based on our applications, we choose different configurations. mentioned our applications.
+The ASUS Xtion Pro Live camera has two cameras and an IR projector as shown in Fig.~\ref{fig:asus_structure}.
+According to the official website~\cite{asus}, it provides the RGB image with the maximum resolution of $1280\times1024$, while the depth can be alternated either VGA resolution ($640\times480$ with 30fps) or QVGA ($320\times240$ with 60fps). 
+Its depth is reported to range from 0.8 to 3.5m, but we found in the experiments that the blind area was less and merely around 0.5m.  
+Xtion Pro Live has been used throughout our experiments and we choose different configurations depending on the applications.
+When the depth super-resolution is required, the RGB images have the resolution of $1280\times1024$, otherwise we keep the same RGB resolution as the depth ($640\times480$).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Shape from Shading \& Photometric Stereo}
 
 \begin{enumerate}
-\item First several sentences about SFS, first formularized by  Horn~\cite{horn1970shape}, it can solve simple inputs but not the complicated ones, show one image about its local ambiguity
+\item First several sentences about SFS, first formularized by  Horn~\cite{horn1970shape}, it can solve simple inputs but not the complicated ones, show one image about its local ambiguity. 
 
-\item then give the definition of Lambertian reflectance model (first derive the model like intrinsic image decomposition, show an image here), then expend to light * albedo * normal, which is first introduced by Hayahawa 94. 
+\item then give the definition of Lambertian reflectance model (first separate the model to the albedo $\times$ shading, show one image from MIT dataset), then expend to light * albedo * normal, which is first introduced by Hayahawa 94. 
 
 \item then naturally comes to the definition of normal (orthographic and the perspective)
 
-\item then to solve the Lambertian model to get the 2 DOF gradients, some constraints are imposed on the filed of surface normals. The integrability constraint is imposed by many people ($p_y = q_x$) to make the problem well-posed like Horn and Brooks~\cite{horn1986variational},  {\color{red}Frankot and Chellapa~\cite{frankot1988method} use orthogonal projection to the subspace of valid smooth surfaces}, some people use curl operator to impost this constraint~\cite{han2013high}.
+\item Even the light and the albedo are known, the inverse problem is ill-posed because the normal is 2 degrees of freedom. 
+some constraints are imposed on the filed of surface normals to make the problem well-posed. The integrability constraint is imposed by many people ($p_y = q_x$) to make the problem well-posed, e.g. Horn and Brooks~\cite{horn1986variational},  {\color{red}Frankot and Chellapa~\cite{frankot1988method} use orthogonal projection to the subspace of valid smooth surfaces}, some people use curl operator to impost this constraint~\cite{han2013high}.
 
-\item then calibrated PS . Give an matrix form like $I = BS$ ({\color{red} or should we?}), B ecodes the surface normal times the albedo. Woodham comes in and there is no need to impose the intergrability constraint but using several images from different directions, and since the lights $S$ are known, a LS is used for such a over-constrined system. Forsythe and Ponce takes care of the pixels which values are zero.
+\item then calibrated PS . Give an matrix form like $I = BS$ ({\color{red} or should we?}), $B$ encodes the surface normal times the albedo. Woodham comes in and there is no need to impose the intergrability constraint but using several images from different directions, and since the lights $S$ are known, a LS is used for such a over-constrined system. Forsythe and Ponce takes care of the pixels which values are zero.
 
-\item However, the lighting $S$ is not always known so the uncalibrated photometric stereo comes to the stage. Hayahawa 94 find that the surface normals ans the albedo can be recovered with a $3\times3$ linear transformation using SVD. Yuille 97 adding the integrabiilty constraint reduced the number of ambiguities to 3 parameters, which we call Gerneralized Bas-Relief (GBR). (Here we should put an image illustrating the ambiguities of shape)
+\item However, the lighting $S$ is not always known so the uncalibrated photometric stereo comes to the stage. Hayahawa 94 find that the surface normals ans the albedo can be recovered with a $3\times3$ linear transformation using SVD. Yuille 97 adding the integrabiilty constraint reduced the number of ambiguities to 3 parameters, which we call Gerneralized Bas-Relief (GBR). 
+Now $I = B A^{-1}A S$, where $A$ is the GBR matrix.
+(Here we should put an image illustrating the ambiguities of shape)
 
 \item Talk about several methods to solve this ambiguity (We can refer to Queau's 2015 paper to put related methods about resolving the GBR ambiguity)
 
@@ -79,7 +82,8 @@ Based on our applications, we choose different configurations. mentioned our app
 
 {\color{red} Questions:}
 \begin{enumerate}
-\item Where to put the "perspective projection" and second order SH? It seems it will become less continuous if we put them right after the orthographic projection and the Lambertian. Maybe put in the depth refinement? 
+\item The difference images I need to show for the ambiguity in SFS problem and the GBR in PS problem. For the SFS, we can use the images from Adelson and Pentland~\cite{adelson1996perception}, but the GBR?
+\item Where to put the normal from "perspective projection" and second order SH? It seems it will become less continuous if we put them right after the orthographic projection and the Lambertian. Maybe put in the depth refinement? 
 \item where to put Hernandez PAMI paper? Their goal was to overcome the shadows but it seems that we didn't really follow theirs
 \end{enumerate}
 
@@ -167,23 +171,23 @@ alldrin 07~\cite{alldrin2007resolving} use entropy \url{http://citeseerx.ist.psu
 %\section{Intrinsic Image Decomposition}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Depth Map Refinement}
+\section{Depth and Shape Refinement}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-My feeling: the state-of-the-art depth refinement method using single image is just an extension of SFS (not even PS), but instead of estimating the two surface gradients from the intensity, they are only interested in the one depth, and the problem becomes even easier because of the input rough depth.
-
-The depth refinement can be divided to two categories: SFS based method and the PS based method.
-
-Since SFS iteslf uses only one input image, it suffers from some intrinsic ambiguities that we have mentioned in the last section even when the lights is known, so there will be more than one possible solutions.
-Moreover, SFS methods are often limited to the uniform or constant albedo. 
-Some methods~\cite{han2013high, yu2013shading} adapted segmentation methods to divide the input image into some constant albedo part, but the real-world objects are usually with complex multi-albedo and small regions, which makes the segmentation not accurate or incorrect.  
-Therefore, SFS methods using only one single image have the difficulty to separate the albedo from the surface normal, which leads to the wrong depth estimation.
+In recent years, there are a large amount of literatures focusing on the depth or shape refinement based on either SFS (only use one single image) or PS (multiple images with different illuminations).
+They are collectively called shading-based methods.
+We will discuss these two streams respectively in the following.
+%----------------------------------------------
+\subsection{SFS-based methods}
+%----------------------------------------------
+Since SFS iteslf uses only one input image, it suffers from some intrinsic ambiguities that we have mentioned in the last section even when the light and the albedo are specified, so there will be more than one possible solution.
+Now, although a rough depth map is given, the illumination and the albedo are unknown, so some regularization terms have to be imposed in order to acquire an exact solution from the inverse problem.
 
 Han \emph{et al.}~\cite{han2013high} presented a framework which combines a global lighting model using the given color and depth with the help of SH model, with a local lighting model which varies spatially. 
 The surface orientations should obey the integrability constraint on the smooth surface so they enforced the constraint by penalizing the curl of local neighborings.
 However, the albedo in their method is assumed to be uniform.
-To handle the multi-albedo objects, they had to apply another intrinsic image decomposition algorithm~\cite{barron2011high} and k-mean clustering to group the albedos.
-Such framework is very time-consuming and not able to be adapted to the real-world applications.
+To handle the multi-albedo objects, they had to apply another intrinsic image decomposition algorithm~\cite{barron2011high} and k-mean clustering to group the albedos into some areas with constant values inside.
+Such framework is not only unrealistic but also very time-consuming so not able to be adapted to the real-world applications.
 
 Yu \emph{et al.}~\cite{yu2013shading} iteratively update SH lighting and the albedo using the initial depth and the refined the shape with the estimated lighting and the relative albedo. 
 They performed mean-shift clustering to segment the input RGB image into small regions with uniform albedo, and then obtained the relative albedos among various segmented regions. 
@@ -191,48 +195,54 @@ To fill in the missing depth information, a constrained texture synthesis and pa
 In constrast, we efficiently apply an basic image inpainting approach as the pre-processing and the results are also satisfying.
 
 
-Wu \emph{et al.}~\cite{wu2014real} extended their previous offline shading-based refinement work~\cite{wu2011shading} with highly parallel scheme and the help of GPU. 
+Wu \emph{et al.}~\cite{wu2014real} extended their previous offline shading-based refinement work~\cite{wu2011shading} to online shape refinement with highly parallel scheme and the help of GPU. 
 They first calculated the 2nd-order SH parameters with the assumption of uniform albedo, and then estimated the albedo by simply dividing RGB image with the shading term.
-We discuss in chapter~\ref{chap:methodology} that severe overfitting problem will happen with this process such that the albedo estimation is not correct.
+We will discuss in chapter~\ref{chap:methodology} this process may leads to the severe albedo overfitting problem such that the albedo estimation is not correct.
 The shape is then refined in real-time by finding the surface that minimizes the difference between the shading and intensity image gradients.
 Thereafter, the coarse depth map was directly refined with smoothness and temporal constraint on the video by using a Gauss-Newton solver on GPU.
 
 Kim \emph{et al.}~\cite{kim2015joint} used a joint energy to estimate the depth, albedo and the light with smoothness regularization terms.
 An anisotropic Laplacian constraint on chromaticity was introduced for albedo and a local smoothness and bas-relief ambiguity similar to~\cite{barron2013intrinsic} constraints are imposed for depth.
-Based on our experiments, it has turned out that the Laplacian on chromaticity of the image cannot provide satisfying albedos inside the small indoor environment.
+Based on our testing implementation, it has turned out that the Laplacian on chromaticity of the image cannot provide satisfying albedos for the small indoor environment.
 What's more, it is a very tedious process to tune all the parameters for the constraints.
 
-Or-El's 2016 paper~\cite{or2016real} can deal with specular objects with the help of IR camera and a more complicated model than SH. 
-Instead, our method still uses a Lambertian diffused reflectance model but can handle the specularity because the specular parts inside the image.
+RGBD-Fusion method from Or-El \emph{et al.}~\cite{or2015rgbd} can also deal with natural illumination conditions and make the depth recovery task in real time under GPU. 
+They imposed the constraints not only on the albedo and depth estimation but also pixel-wise ambient lighting.
+Their method does not really converge because of their way of handling the nonlinearity.
+This inspired us to propose a new RGB ratio model to eliminate the nonlinearity. 
 
 
-Depth refinement with PS: With the help of multiple images acquired from various illuminations, PS based depth refinement methods can resolve the ambiguities tolerated by SFS methods 
+Or-El's following work~\cite{or2016real} can deal with specular objects with the help of IR camera and a more complicated reflectance model than spherical harmonics. 
+In constrast, our proposed multi-light method still uses a Lambertian diffused reflectance model but can handle the specularity.
 
-Haque \emph{et al.}~\cite{haque2014high} was the first method to reconstruct the shape and refine the depth using an IR camera without the need of RGB camera.
-However, the problem is the same as many other multi-view photometric reconstruction approaches~\cite{park2013multiview, queau2017dense} that the albedo is restricted to uniform.
+From what we have discussed, SFS methods are often limited to the uniform or constant albedo. 
+For the sake of handling multi-albedo cases, some SFS methods~\cite{han2013high, yu2013shading} adapted segmentation methods to divide the input image into some constant albedo part, but the real-world objects are usually with complex multi-albedo and small regions, which makes the segmentation not accurate or incorrect.  
+Some other methods~\cite{wu2014real,kim2015joint,or2015rgbd,or2016real} tries to add some piecewise smooth constraints on the albedo but never really acquired satisfying outcome.
+Therefore, SFS-based methods using only one single image have the difficulty to separate the albedo from the surface normal, which may lead to the wrong depth estimation.
+
+%----------------------------------------------
+\subsection{PS-based methods}
+%----------------------------------------------
+Another category of shading-based depth refinement is PS-based methods.
+With the help of multiple images acquired from various illuminations, these approaches can resolve the ambiguities tolerated by SFS methods and have a better performance in the separation between the albedo and surface normal.
+
+Haque \emph{et al.}~\cite{haque2014high} proposed the a method to reconstruct the shape and refine the depth using an IR camera without the need of RGB camera.
+However, similar to many other multi-view photometric reconstruction approaches~\cite{park2013multiview, queau2017dense}, they assumed the albedo is restricted to uniform and thus, it is feasible to use it for multi-albedo objects.
 
 Their follow-up work from Chatterjee and Govindu~\cite{chatterjee2015photometric} decomposed the input images under different illuminations with a standard photometric stereo manner.
 They used an iterative reweighted method to approximate the Rank 3 radiometric brightness matrix, then factorize it into the corresponding lighting, albedo and surface normal. 
 They can cope with the multi-albedo objects but still have to use the IR images instead of RGB images. 
-In this case, an extra infrared light source is required, while in our case only a cheap LED light or even just the flashlight on a phone is enough.
-Moreover, since the IR camera in ASUS Xtion Pro Live is limited to the resolution $640\times 480$, while the RGB camera can reach $1280\times 1024$, the depth super-resolution task can be performed with our method.
+In this case, at least one extra infrared light source is always required, while in our case only a cheap LED light or even just the flashlight on a phone is enough.
+Moreover, since the IR camera in ASUS Xtion Pro Live is limited to the resolution $640\times 480$, while the RGB camera can reach $1280\times 1024$, their approach can not perform depth super-resolution task like our multi-light method.
 
-mention Super-resolution Imaging that it is also very interesting to extend our the state-of-the-art depth refinement to real refinement.
-
-
-
-Multi-view-stereo 
-Wu~\cite{wu2011high} uses a second-order spherical harmonics to model the general illuminations and use the shading constraint to help improve the object reconstruction.
+Wu \emph{et al.}~\cite{wu2011high} uses a second-order spherical harmonics to model the general illuminations and use the shading constraint to help improve the object reconstruction.
 this method is extended to~\cite{wu2011shading} whose results are furthered improved by integrating a weak temporal prior on lighting, albedo and the shape.
-mentioned very latest research is also related to depth refinement, using several images from different views (Yvain's and Zuozuo's Arxiv paper) 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%
-%\begin{figure}[htb]
-%        \centering
-%        \epsfxsize=4cm
-%        {\epsfbox{figures/interp.eps}}
-%  \caption{Interpolation of corresponding coordinates}
-%  \label{fig:interp}
-%\end{figure}
-%
+
+In this thesis, we proposed two shape refinement methods based on uncalibrated photometric stereo.
+Similar to~\cite{hernandez2011overcoming}, we firstly used RGB 3 LED lights for the active illuminations so we can treat  the every channel of the obtained color image as an intensity image with lights from a different direction.
+Another proposed method needed only one white LED. 
+With the the RGB-D camera's angle of view fixed, we manually moved the LED lights while the images are being taken.
+Moreover, the shading-based method have never been applied for the depth map super-resolution before.
+We successfully adapted our methods to depth super-resolution and achieved very pleasing outcomes. 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

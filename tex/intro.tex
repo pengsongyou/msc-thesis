@@ -1,4 +1,24 @@
 \chapter{Introduction} \label{chap:intro}
 
 \section{Research Goal}\label{sect:thefirst}
+\begin{itemize}
+    \item The use of RGB-D camera, the use of depth information, application: visual odometry on quadropter, human motion capture, 3D reconstruction.
+    \item but the depth image from consumer RGB-D camera has bad accuracy and noisy and missing data. does not contain any fine details, for example the button on the shirt, some wrincles on your hand, etc.
+    \item some method tried to recover these details by fusing the depth data from multiple views~\cite{newcombe2011kinectfusion}, however, still the recovered details is very limited.
+    \item so here comes our work, we explore the intrinsic details of the object in an image, analyze the lights' positions and its corresponding influence of the shading on the object, the reflectance rate of the material on the objects.
+    \item talk a bit about SFS and PS, their basic definition: obtain the shape from an image when the light is known. 
+    \item say that combine SFS or PS with observed depth can eliminate ambiguities and has been widely used for shape or depth refinement by  and it is usually formulated as an inverse problem. and nonlinearity within the normal exists in such an inverse problem, some people tries to use some nonlinear optimization to solve this problems but makes the process super slow, some others freeze the nonlinear part with the thing in the last iteration, but this sometimes leads to divergence problem. So we have a good method.
+    \item say that some state-of-the-art methods need to make some strict assumptions like constant albedo, but not really in line with real world objects. Some others try to estimate the albedo by imposing some piece-wise smoothness terms, but the estimation is not satisfying and the surface normal cannot be separated from the albedo. And how good is ours
+    \item the idea of our two methods. use what as the input, first estimate waht, then waht then what. {\color{red}(we explicitly estimate the in- cident illumination in the scene based on the reconstructed shape, make an estimate of the albedo distribution on the surface, and then use this information together with the lighting equation to recover the fine-grained structure and orientation of points on the surface. We assume a Lam- bertian model of reflection where incident lighting is given by an environment map that is parameterized in the spher- ical harmonic domain, and where surface properties are given by a spatially-varying albedo map.)}
+\end{itemize}
+
+contribution of our method
+\begin{enumerate}
+    \item an more efficient and faster implementation of a state-of-the-art method
+    \item present a new RGB ratio model which resolve the nonlinearity in the inverse problem and achieve similar results to state-of-the-art
+    \item We proposed a robust multi-light depth refinement method which outperforms the state-of-the-art both quantitatively and qualitatively. Moreover, no regularization is imposed at all.
+    \item We extended our work to the depth super-resolution.
+\end{enumerate}
+
+
 \section{Outline}

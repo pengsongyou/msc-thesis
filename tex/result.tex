@@ -1,26 +1,23 @@
 \chapter{Results and Evaluation} \label{chap:result}
-{\color{red}Give some introduction, the structure of this chapter.}
-
+%{\color{red}Give some introduction, the structure of this chapter.}
 \textbf{Parameter setup}
 First we need to specify the parameters we used throughout the whole evaluation part. 
 The default parameters are applied for the RGBD-Fusion method, which has 8 in total. 
 It should be mentioned that, since both proposed methods don't have smoothness term for the depth enhancement, the $\lambda_z^2$ in RGBD-Fusion and $\lambda_l$ in our implementation RGBD-Fusion Like method are set to 0 for the sake of fairness comparison.
 Only during the quantitative evalution, we want to illustrate the importance of this smoothness term so the $\lambda_z^2$ and $\lambda_l$ are set to the values in table~\ref{tab:parameter_setup}.
-
 \begin{table}[!ht]
 \caption{Parameters of all the methods throughout all the experiments.}
 \label{tab:parameter_setup}
 \centering
 \begin{tabular}{|m{4cm} |m{1.5cm} |m{7cm}|}
 \hline
-Method                               & \multicolumn{1}{c|}{Total number} & \multicolumn{1}{c|}{Parameters}                                                                                                                                          \\ \hline
+\multicolumn{1}{|c|}{Method}                               & \multicolumn{1}{c|}{Total number} & \multicolumn{1}{c|}{Parameters}                                                                                                                                          \\ \hline
 RGBD-Fusion~\cite{or2015rgbd} & \multicolumn{1}{c|}{8}            &{$\lambda_\rho = 0.1, \lambda_\beta^1 = 0.1, \lambda_\beta^2 = 0.1, \tau = 0.05, \sigma_c = \sqrt{0.05}, \sigma_d = \sqrt{50}, \lambda_z^1 = 0.004, \lambda_z^2 = 0.0075$} \\ \hline
-RGBD-Fusion Like                    & \multicolumn{1}{c|}{5}             & {$\lambda_{\rho} = 10, \sigma_I = \sqrt{0.05}, \sigma_z = \sqrt{50}, \lambda_z = 500, \lambda_l = 2$}                                                                                                                                                                         \\ \hline
-Proposed I: RGB Ratio                            & \multicolumn{1}{c|}{4}             & $\lambda_{\rho}^1 = 10^{15}, \lambda_{\rho}^2 = 10^{13}, \sigma_c = 100, \lambda_z = 100$                                                                                                                                                                                                                                                                                                                                                  \\ \hline
-Proposed II: Multi-Light                          & \multicolumn{1}{c|}{1}            & $\lambda_z = 100$                                                                                                                                                                          \\ \hline
+RGBD-Fusion Like method (Eq.~\ref{eq:rgbd_energy})                    & \multicolumn{1}{c|}{5}             & {$\lambda_{\rho} = 10, \sigma_I = \sqrt{0.05}, \sigma_z = \sqrt{50}, \lambda_z = 500, \lambda_l = 2$}                                                                                                                                                                         \\ \hline
+Proposed I: RGB Ratio model (Eq.~\ref{eq:ratio_energy})                            & \multicolumn{1}{c|}{4}             & $\lambda_{\rho}^1 = 10^{15}, \lambda_{\rho}^2 = 10^{13}, \sigma_c = 100, \lambda_z = 100$                                                                                                                                                                                                                                                                                                                                                  \\ \hline
+Proposed II: Robust Multi-Light  (Eq.~\ref{eq:robust_energy})                        & \multicolumn{1}{c|}{1}            & $\lambda_z = 100$                                                                                                                                                                          \\ \hline
 \end{tabular}
 \end{table}
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Quantitative Evaluation}
