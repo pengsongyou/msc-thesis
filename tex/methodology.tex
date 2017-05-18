@@ -874,7 +874,9 @@ More examples can be found in chapter~\ref{chap:result}.
 %----------------------------------------------
 \subsection{When super-resolution meets depth refinement}
 %----------------------------------------------
-For most of the well-known comsumer RGB-D cameras the depth resolution is far smaller than the RGB resolution.
+We can notice that there exist over-smoothed problem in many 3D scanning applications, which is due to the fact that the depth map given by the consumer RGBD-camera usually has a really low resolution.
+The scanning or reconstruction results will be then improved if the depth resolution is increased.
+And as we know, for most of the well-known comsumer RGB-D cameras the depth resolution is far smaller than the RGB resolution.
 For instance, ASUS Xtion Pro Live can acquire $1280\times 1024$ RGB images and $640\times 480$ depth images. Microsoft Kinect 2.0 owns $1920\times1080$ RGB resolution but only $512\times424$ depth one, and Intel RealSense R200 has a $1920\times1080$ RGB camera while the depth reoslution is $640\times 480$.
 It would be very useful if we can not only refine the depth map in its original scale, but close to the RGB resolution.  
 
