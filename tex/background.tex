@@ -58,118 +58,127 @@ When the depth super-resolution is required, the RGB images have the resolution 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Shape from Shading \& Photometric Stereo}
 
-\begin{enumerate}
-\item First several sentences about SFS, first formularized by  Horn~\cite{horn1970shape}, it can solve simple inputs but not the complicated ones, show one image about its local ambiguity. 
+The well-known shape from shading (SFS) problem was first introduced by Horn~\cite{horn1970shape} in 1970 and then a large amount of literatures flooded in to develop the field.
+The idea of SFS is, knowing the light source position, one can estimate the shape or the surface of an object from one single grayscale image.
+From the mathematical perspective, a SFS problem can be formulated as follows:
+\begin{equation}\label{eq:sfs_equation}
+    I = \rho S
+\end{equation}
+where $I$ is an intensity image, $\rho$ is the reflectance (albedo) of the surface, and the $S$ is the shading image. 
+An example of such an image decomposition is shown in Fig.~\ref{fig:shading}.
+%&&&&&&&&&&&&&&&&&&&&&&&&&
+\begin{figure}[!htbp]
+\centering
+\setlength{\tabcolsep}{0.1em} % column spacing
+ {\renewcommand{\arraystretch}{0.6}% row spacing
+\begin{tabular}{c c c c c}
+   \includegraphics[height = 0.16\linewidth]{figures/panther_rgb.png} \hspace{0.05cm}   &
+   \multirow{-10}{*}{\parbox[t]{3.5mm}{=}}  & 
+   \includegraphics[height = 0.16\linewidth]{figures/panther_rho.png} &
+    \multirow{-10}{*}{\parbox[t]{3.5mm}{$\times$}}  & 
+   \includegraphics[height = 0.16\linewidth]{figures/panther_shade.png} \\
+      {I} &{} &{$\rho$} & {}& {$S$}            
+ \end{tabular}}
+\caption{The decomposition of a color toy panther. Images are from MIT intrinsic images dataset~\cite{grosse2009ground}.}
+\label{fig:shading}
+\end{figure}
+%&&&&&&&&&&&&&&&&&&&&&&&&&
 
-\item then give the definition of Lambertian reflectance model (first separate the model to the albedo $\times$ shading, show one image from MIT dataset), then expend to light * albedo * normal, which is first introduced by Hayahawa 94. 
+All SFS problem assumes the observed object follows the Lambert's cosine law, which says that the irradiance from a diffused object is proportional to the cosine between the point source light direction and the surface normal~\cite{klett1760ih}. 
+Based on the Lambert's cosine law, the Eq.~\ref{eq:sfs_equation} can be reformulated to the Lambertian reflectance model:
+\begin{equation}\label{eq:lambertian_model}
+    I = \rho \; \mathbf{l}^\top \mathbf{n}
+\end{equation}
+which we can notice that the shading $S$ is the inner product of the light direction and the surface normal.
+Thus, the task of SFS is to retrieve the shape (surface normal) from the shading based on the Lambertian reflectance model.
+Moreover, many state-of-the-art shape or depth refinement methods used an extension of Lambertian model called spherical harmonics (SH) \cite{basri2003lambertian, ramamoorthi2001relationship} which can represent the illuminations more realistically. 
+It has been shown that the first-order SH model (Eq.~\ref{eq:sh_model}) can account for $87.5\%$ of real world light so we applied it throughout the whole thesis.
+\begin{equation}\label{eq:sh_model}
+    I = \rho \; (\mathbf{l}^\top \mathbf{n} + \varphi)
+\end{equation}
+where $\varphi$ can be understood as the ambient light parameter.
 
-\item then naturally comes to the definition of normal (orthographic and the perspective)
+The goal of SFS is to estimate the shape or the surface of object, which is represented by the surface normal $\mathbf{n}$.
+Two camera projection models are usually used for modelling the surface normal: orthographic and perspective projection.
+To derive $\mathbf{n}$ using an orthographic projection, we consider projection along the $z$-axis\cite{hartley2003multiple}.
+Hence, A 3D point $P = (x,y,z)$ is mapped to the image point $p = (x,y)$.
+It should be noted that the depth $z$ depends on the coordinate $x$ and $y$.
+And we know the surface normal is orthogonal to the tangent plane in $(x,y)$, which can be written as:
+\begin{equation}
+    \mathbf{n}(P) \propto \; \partial_x P \times \partial_y P 
+    = \begin{pmatrix} 1 \\ 0 \\ z_x\end{pmatrix}
+    \times \begin{pmatrix} 0 \\ 1 \\ z_y\end{pmatrix}
+    = -\begin{pmatrix} z_x \\ z_y \\ -1\end{pmatrix}
+\end{equation}
+After normalizing and neglecting the negative sign, we acquire the unit-length surface normal with orthographic projection:
+\begin{equation}
+    \mathbf{n}_{ortho} = \frac{1}{\sqrt{1 + \nabla z}} \begin{pmatrix} \nabla z \\ -1\end{pmatrix}
+\end{equation}
+For the more realistic perspective model, the 3D point $P$ now becomes $\begin{pmatrix} (x - x_0)/f \\ (y - y_0)/f\\ z\end{pmatrix}$ and the corresponding normal is:
+%$$$$$$$$$$$$$$$$
+\begin{equation}\label{eq:ratio_normal}
+    \mathbf{n}_{perspect} =
+    \frac{1}{d}
+     \begin{pmatrix}
+         f\tilde{z}_x\\
+         f\tilde{z}_y\\
+         -1 - (x-x_0)\tilde{z}_x - (y - y_0)\tilde{z}_y
+     \end{pmatrix}
+\end{equation}
+%$$$$$$$$$$$$$$$$
+where $\tilde{z} = \log{z}$, $f$ the focal length, $(x_0, y_0)$ the coordinates of principle points, and the normalizer $d =  \sqrt{(fz_x)^2 + (fz_y)^2 + (-1 - (x-x_0)z_x - (y - y_0)z_y)^2}$.
 
-\item Even the light and the albedo are known, the inverse problem is ill-posed because the normal is 2 degrees of freedom. 
-some constraints are imposed on the filed of surface normals to make the problem well-posed. The integrability constraint is imposed by many people ($p_y = q_x$) to make the problem well-posed, e.g. Horn and Brooks~\cite{horn1986variational},  {\color{red}Frankot and Chellapa~\cite{frankot1988method} use orthogonal projection to the subspace of valid smooth surfaces}, some people use curl operator to impost this constraint~\cite{han2013high}.
+From the definition of the surface normal, we can notice the SFS is an ambiguous problem. 
+Even when the lighting and the albedo are known in Eq.~\ref{eq:lambertian_model}, the inverse problem is ill-posed because the normal is 2 degrees of freedom. 
+As we can see from Fig.~\ref{fig:sfs_ambiguity}, the solution of SFS is ambiguous.
+Horn and Brooks~\cite{horn1986variational} proposed the so-called integrability constraint $z_{xy} = z_{yx}$, which was the first constraint imposed on the filed of surface normal to make the SFS problem well-posed. 
+Frankot and Chellapa~\cite{frankot1988method} projected a non-integrable surface to the subspace spanning the valid smooth surface.
 
-\item then calibrated PS . Give an matrix form like $I = BS$ ({\color{red} or should we?}), $B$ encodes the surface normal times the albedo. Woodham comes in and there is no need to impose the intergrability constraint but using several images from different directions, and since the lights $S$ are known, a LS is used for such a over-constrined system. Forsythe and Ponce takes care of the pixels which values are zero.
+{\color{red} put the image from Pentland}
 
-\item However, the lighting $S$ is not always known so the uncalibrated photometric stereo comes to the stage. Hayahawa 94 find that the surface normals ans the albedo can be recovered with a $3\times3$ linear transformation using SVD. Yuille 97 adding the integrabiilty constraint reduced the number of ambiguities to 3 parameters, which we call Gerneralized Bas-Relief (GBR). 
-Now $I = B A^{-1}A S$, where $A$ is the GBR matrix.
-(Here we should put an image illustrating the ambiguities of shape)
 
-\item Talk about several methods to solve this ambiguity (We can refer to Queau's 2015 paper to put related methods about resolving the GBR ambiguity)
+Provided we have several images from the same view but with different illuminations, Eq.~\ref{eq:sfs_equation} can be modelled as:
+\begin{equation}\label{eq:ps_equation}
+    \mathbf{I = BL}
+\end{equation}
+Assuming there are $n > 2$ {\color{red}(why = 2 when the albedo is also known?)} images from various illumination conditions, $\mathbf{I}$ is the stack of all the intensity images, $\mathbf{B}$ corresponds to $\rho \mathbf{n}^\top$ and $\mathbf{L}$ represents $n$ lighting.
+If the illuminations are known, we call this problem \emph{calibrated} photometric stereo (PS), which was first introduced by Woodham~\cite{woodham1980photometric} in 1980. The problem is over-constrained so the surface normals can be estimated using a simple least square. 
+Some regions may sometimes suffer from the shadows for a certain illumination, so Forsythe and Ponce~\cite{forsyth2003modern} formed a diagonal matrix to eliminate all those shadow points.
+Another interesting example of calibrated PS was proposed by Hern{\'a}ndez \emph{et al.}~\cite{hernandez2011overcoming}.
+They controlled red, green, and blue three color lights from three directions and acquired the shape from only one color image, every channel of which was treated as a separate intensity image.   
+This was one of the inspiration of our first proposed method RGB ratio model, which will be detailed in chapter~\ref{chap:methodology}.
 
-\item Then we say since the rough depth is given as the input, such ambiguity is not a problem anymore , so we move to next subsection: depth refinement.
+However, the different lightings and the albedo are not always controlled or given, then we call this kind of problem \emph{uncalibrated} photometric stereo. 
+Hayakawa~\cite{hayakawa1994photometric} found that the surface normals and the albedo could be recovered with a $3\times3$ linear transformation using singular value decomposition. Yuille and Snow~\cite{yuille1997shape} further reduced the number of ambiguities to three by adding the integrability constraint.
+The 3-parameter ambiguity is called gerenalized bas-relief (GBR) and now Eq.~\ref{eq:ps_equation} can be represented as
+\begin{equation}\label{eq:ps_gbr}
+    \mathbf{I} = \mathbf{B}\mathbf{A}^{-1}\mathbf{A}\mathbf{L}    
+\end{equation}
+where $A$ is the GBR matrix:
+\begin{equation}
+    \mathbf{A} = 
+    \begin{pmatrix}
+        1& 0 & 0\\
+        0& 1 & 0\\
+        \mu & \nu & \lambda
+    \end{pmatrix}
+\end{equation}
 
-\end{enumerate}
+There are a large amount of research work trying to solve the GBR ambiguity in uncalibrated PS.
+Alldrin \emph{et al.}~\cite{alldrin2007resolving} used the prior emphasizing that the albedo distribution should have a low entropy, to resolve the ambiguity.
+Favaro and Papadhimitri~\cite{papadhimitri2014closed} eliminated the ambiguity by exploiting the spatial maximum points of the inner product between the normals and the lights.
+They also found out the solution is unique when the normal is constructed under the perspecitve projection instead of the orthographic projection~\cite{papadhimitri2013new}.
+Qu\'{e}au \emph{et al.}~\cite{queau2015solving} estimated the GBR parameters by imposing the total variation norm.
 
-{\color{red} Questions:}
-\begin{enumerate}
-\item The difference images I need to show for the ambiguity in SFS problem and the GBR in PS problem. For the SFS, we can use the images from Adelson and Pentland~\cite{adelson1996perception}, but the GBR?
-\item Where to put the normal from "perspective projection" and second order SH? It seems it will become less continuous if we put them right after the orthographic projection and the Lambertian. Maybe put in the depth refinement? 
-\item where to put Hernandez PAMI paper? Their goal was to overcome the shadows but it seems that we didn't really follow theirs
-\end{enumerate}
+In terms of depth, the GBR ambiguity is equivalent to the equation~\cite{queau2015solving}:
+\begin{equation}
+    z(x,y) = \lambda z(x,y) + \mu x + \nu y
+\end{equation}
+Based on the equation, we find out that the GBR ambiguity still exists for the task of depth estimation.
+However, since the rough depth will be given as the input from RGB-D camera, the GBR ambiguity problem encountered by uncalibrated PS is resolved automatically.  
+Now we will discuss some state-of-the-art depth refinement approaches.
 
-Shape from Shading (SFS) uses a single image to estimate the surface using knowledge of the light source position, albedo and position of the camera. The integrability constraint is imposed as a constraint in optimization to make the problem well posed, as described by Horn and Brooks~\cite{horn1986variational}.
-The reason why the integrability constraint is applied is that surface normal will not be an arbitrary vector field
-They used an iterative variational scheme to solve for the first order partial derivative of the depth, not strictly enforcing the integrability constraint, but using it as a penalty in the minimization function.
- Frankot and Chellapa~\cite{frankot1988method} use orthogonal projection to the subspace of valid smooth surfaces at each iteration of the Horn and Brooks algorithm. (Here we can introduce orthogonal projection model, we assume that the image plane is directly above the surface)
  
-In Photometric stereo (PMS), the integrability constraint is not used at all. At least three images are taken of the object with known (or estimated) light sources.  In the basic algorithm, the surface normals are estimated using Least-Square solution (Woodham 1980~\cite{woodham1980photometric}), and no global information is used at all in the estimation. 
-
-The whole paragraph above was from~\cite{petrovic2001enforcing}
-
-
-
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-there exist infinite solutions if only the SFS term is applied to refine the depth (Yvain's PhD thesis). Therefore, z-z0 data fidelity is albedo to applied to restrict to the unique solution 
-%----------------------------------------------
-\subsection{Lambertian reflectance model}
-%----------------------------------------------
-We can show the Intrinsic image decomposition as the an example of Lambertian reflectance as an informal explanation. shading is the product of the a certain kind of illumination model and the shape (surface normal)~\cite{barron2015shape}
-
-Illustrate with the an image from MIT intrinsic dataset~\cite{grosse2009ground}
-
-SH model is an extension of Lambertian model
-
-  \url{https://pdfs.semanticscholar.org/7b8d/fc5d6e276f8048bb53b4a5e0611019570f1b.pdf}
-\cite{basri2003lambertian}
-
-cite Shape From Shading Emmanuel Prados, Olivier Faugeras
-\url{https://en.wikipedia.org/wiki/Lambertian_reflectance}
-
-\url{https://www.cs.cmu.edu/afs/cs/academic/class/15462-f09/www/lec/lec8.pdf}
-\url{http://www.cs.virginia.edu/~gfx/Courses/2011/ComputerVision/slides/lecture20_pstereo.pdf}
-
-
-we assume that surfaces in a scene are Lambertian, and we parameterize the incident lighting with spherical harmonics (SH) [Wu et al. 2011] \cite{wu2011shading}.
-
-In fact, we estimate incident irradiance as a function of the surface normal, that is the incident light, filtered by the cosine with the normal. For Lambertian reflectance, the incident irradiance function is known to be smooth, and can be represented with only little error using the first nine spherical harmonics basis functions up to 2nd order~\cite{ramamoorthi2001efficient}. (well, actually should check this one~\cite{ramamoorthi2001relationship})
-As with previous approaches, we henceforth estimate lighting from a grayscale version of I, and thus assume gray lighting with equal values in each RGB channel. In some steps, full RGB images are used, which we denote Ic. Unlike offline multi-view methods, we employ a triangulated depth map as geometry parameterization. This means there is a fixed depth pixel to mesh vertex relation, and we can express the reflected irradiance B(i, j) of a depth pixel (i, j) with normal n(i, j) and albedo k(i, j)
-
-This sentence is from\cite{wu2014real}
-
-
-%----------------------------------------------
-\subsection{Surface normal}
-%----------------------------------------------
-\url{http://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html}
-
-orthographic model
-perspective model
-
-It is an ill-posed problem to estimate the normal, that's where SFS and PS are involved. 
-
-SFS:
-Horn
-
-PS:
-
-calibrated light: woodham~\cite{woodham1980photometric} \url{https://classes.soe.ucsc.edu/cmps290b/Fall05/readings/Woodham80c.pdf}
-
-uncalibrated light:
-
-Hayakawa 94~\cite{hayakawa1994photometric} \url{http://www.wisdom.weizmann.ac.il/~vision/courses/2010_2/papers/photometric_stereo.pdf}
-start the I = albedo*light*normal $3\times3$ linear ambiguity
-
-Yville 97~\cite{yuille1997shape}: \url{http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.446.3648&rep=rep1&type=pdf}
-use integrability (smoothness), reduce the ambiguity to 3-parameter ambiguity (GBR)
-$z(x,y) = \lambda z(x,y) + \mu x + \beta y$, which is GBR ambiguity. That's why our method works because we have initial depth $z_0$ and data fidelity term constrains the $z$ to $z_0$, so the ambiguity equation is invalid. 
-And in our case: PDE ($\Delta z$) $->$ integrability is implicity enforced
-
-All the following PS method is trying to solve this ambiguity
-alldrin 07~\cite{alldrin2007resolving} use entropy \url{http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.93.7264&rep=rep1&type=pdf}
-
-\cite{papadhimitri2013new} perspective \url{http://www.cv-foundation.org/openaccess/content_cvpr_2013/papers/Papadhimitri_A_New_Perspective_2013_CVPR_paper.pdf}
-
-\cite{papadhimitri2014closed}\url{https://pdfs.semanticscholar.org/2cf9/088e9faa81872b355a4ea0a9fae46d3c8a08.pdf}
-
-\cite{queau2015solving} use TV \url{http://oatao.univ-toulouse.fr/15158/1/queau_15158.pdf}
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%\section{Intrinsic Image Decomposition}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Depth and Shape Refinement}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

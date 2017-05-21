@@ -22,7 +22,9 @@ Proposed II: Robust Multi-Light  (Eq.~\ref{eq:robust_energy})                   
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Quantitative Evaluation}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\textbf{Data generation}
+%-------------------------------------------------------------------------------
+\subsection{Data generation}
+%-------------------------------------------------------------------------------
 In order to quantitatively validate the performance of our proposed methods and our implementation of the RGBD-Fusion, we use the well-known "The Joyful Yell" dataset with 3 point light sources and ambient lights. 
 Three various albedo scenarios are considered: 
 \begin{itemize}
@@ -83,6 +85,9 @@ L =
 
 With the 3 different albedos and all the pre-defined lights, we can create the synthetic color images like the first row in Fig.~\ref{fig:result_syn_comp}.
 
+%-------------------------------------------------------------------------------
+\subsection{Results Accuracy}
+%-------------------------------------------------------------------------------
 \textbf{Metrics}
 Two metrics have been defined to quantitatively evaluate the performance of depth refinement: root mean square error (RMSE) and mean angular error (MAE).
 Since we have already had the input rough depth and the ground truth depth as shown in Fig.~\ref{fig:comp_syn_input}, we can define two metrics as follows.
@@ -226,6 +231,14 @@ According to table~\ref{tab:parameter_setup},~\ref{tab:comp_syn_eval} and Fig.~\
 \end{figure}
 
 
+%-------------------------------------------------------------------------------
+\subsection{Runtime}
+%-------------------------------------------------------------------------------
+
+Mention the in each iteration, the runtime, then the corresponding accuracy. 
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Real Data Evaluations}
 %----------------------------------------------
@@ -306,6 +319,11 @@ try to add noise on some of the images in the synthetic dataset and check the ef
 \caption{Comparison our multi-light model with RGBD-Fusion in two specular objects. On the first column, the RGB images of the folder and the vase are ones of  the 10 various illuminations. First and third rows correspond to the surface normal from the refined depth, while second and fourth are the refined depth.}
 \label{fig:comp_complicated_albedo}
 \end{figure}
+
+%----------------------------------------------
+\subsection{Comparison with Photometric stereo method}
+%----------------------------------------------
+
 %&&&&&&&&&&&&&&&&&&&&&&&&&
 
 
