@@ -198,7 +198,7 @@ According to table~\ref{tab:parameter_setup},~\ref{tab:comp_syn_eval} and Fig.~\
 %  \includegraphics[width=0.1\linewidth]{figures/result/comp_input_shape.pdf} \\
 %  Realistic \\
 %   initialization \end{tabular}} &
-    % Ours - Dir
+
 \multirow{-15}{*}{\parbox[t]{2.5mm}{\rotatebox[origin=c]{90}{\small RGB Ratio}}} &    
  \includegraphics[height=0.25\linewidth]{figures/result/comp_ratio_rgb_shape.pdf}
  \includegraphics[height=0.25\linewidth]{figures/result/comp_ratio_rgb_albedo.pdf} &
@@ -208,10 +208,9 @@ According to table~\ref{tab:parameter_setup},~\ref{tab:comp_syn_eval} and Fig.~\
   % Complicate Pattern
 \includegraphics[height=0.25\linewidth]{figures/result/comp_ratio_love_shape.pdf} 
 \includegraphics[height=0.25\linewidth]{figures/result/comp_ratio_love_albedo.pdf} \\
-& {\small RMSE $= \textbf{1.94}$, MAE $=\textbf{5.06}$} & {\small RMSE $= 2.91$, MAE $=17.52$} & {\small RMSE $= 3.10$, MAE $=21.22$} \\
+& {\small RMSE $= \textbf{1.94}$, MAE $=5.06$} & {\small RMSE $= 2.91$, MAE $=17.52$} & {\small RMSE $= 3.10$, MAE $=21.22$} \\
 %%%%%%%%%%%%%%%%%%
-  % Same for SIRFS
-  % Ours - Dir
+
 \multirow{-15}{*}{\parbox[t]{2.5mm}{\rotatebox[origin=c]{90}{\small Multi-Light}}} &   
  \includegraphics[height=0.25\linewidth]{figures/result/comp_robust_rgb_shape.pdf}
  \includegraphics[height=0.25\linewidth]{figures/result/comp_robust_rgb_albedo.pdf} &
@@ -221,7 +220,7 @@ According to table~\ref{tab:parameter_setup},~\ref{tab:comp_syn_eval} and Fig.~\
   % Complicate Pattern
 \includegraphics[height=0.25\linewidth]{figures/result/comp_robust_love_shape.pdf} 
 \includegraphics[height=0.25\linewidth]{figures/result/comp_robust_love_albedo.pdf} \\
-& {\small RMSE $= 3.40$, MAE $=6.66$} & {\small RMSE $= \textbf{1.58}$, MAE $=\textbf{1.73}$} & {\small RMSE $= \textbf{1.84}$, MAE $=\textbf{2.68}$} \\
+& {\small RMSE $= 3.21$, MAE $=\textbf{4.43}$} & {\small RMSE $= \textbf{1.58}$, MAE $=\textbf{1.73}$} & {\small RMSE $= \textbf{1.84}$, MAE $=\textbf{2.68}$} \\
  \\
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   \end{tabular}
@@ -234,16 +233,60 @@ According to table~\ref{tab:parameter_setup},~\ref{tab:comp_syn_eval} and Fig.~\
 %-------------------------------------------------------------------------------
 \subsection{Runtime}
 %-------------------------------------------------------------------------------
+First of all, all the tests were performed in MATLAB R2015b under Mac OSX 10.10.5, Intel Core i5 2.7GHz, 2 cores, 8GB memory. 
+The resolution of our synthetic image was $540\times 960$.
 
-Mention the in each iteration, the runtime, then the corresponding accuracy. 
+We first compare the runtime for 4 methods, which is shown in table~\ref{tab:runtime}.
+It is noticeable that our implementation of RGBD-Fusion like method is much faster than the original approach while the accuracy from our implementaion is quite similar to the original one.
+On the one hand, we only consider the pixel inside the mask while the official implementation uses the whole image.
+One the other hand, instead of estimating the ambient light for each pixel with an extra energy, we directly treat the ambient light as one parameter inside the first-order spherical harmonics so the the ambient light could be obtained along with lighting directions.
 
+It should be mentioned that both of our proposed approaches are indeed about twice slower than RGBD-Fusion method. 
+However, the RGBD-Fusion method stops when the overall energy starts increasing, which happens merely in $1-3$ iterations based on our experiment.  
+In contrast, the minimization for our methods are both convergent so the runtime highly relies on the threshold for the relative change of the energy values.
+
+\begin{table}[!ht]
+\caption{The comparison of Runtime among RGBD-Fusion method, our implementation RGBD-Fusion Like method,  proposed RGB ratio model and robust multi-light method.}
+\label{tab:runtime}
+\centering
+\begin{tabular}{|m{4cm} |m{7cm}|}
+\hline
+\multicolumn{1}{|c|}{Method}                               & \multicolumn{1}{c|}{Runtime (s)}                                                                                                                 \\ \hline
+RGBD-Fusion~\cite{or2015rgbd} & \multicolumn{1}{c|}{21.64}             \\ \hline
+RGBD-Fusion Like                     & \multicolumn{1}{c|}{7.75}      \\ \hline
+Proposed I: RGB Ratio                            & \multicolumn{1}{c|}{49.33}        \\ \hline
+Proposed II: Multi-Light                        & \multicolumn{1}{c|}{52.82}\\ \hline
+\end{tabular}
+\end{table}
+
+Now for the proposed robust multi-light method, we are interested in understanding how the number of  images makes the difference on the runtime as well as RMSE and MAE.
+To perform the experiment, we first randomly pre-defined 100 illumination directions and constructed the corresponding synthetic color images.
+And then we picked $4, 10, 15, 20, 30, 40, 50, 60, 80, 100$ images from this new dataset and recorded the runtime in each iteration as well as the final errors when the stopping criteria in Alg.~\ref{alg:robust} set to $\epsilon = 0.01$.
+
+It has been shown in Fig.~\ref{fig:result_runtime} that the runtime for each iteration has quadratic ascent when the number of images increases.
+But the impressive observation is, when the image amount increases, two errors first decreases and then go up again. 
+Therefore, if we take the comprehensive consideration, $10-20$ is a suitable number for different number of lightings.
+
+ 
+
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[height = 0.6\linewidth]{figures/result/runtime.pdf} 
+    \caption{Illustrations for the runtime, RMSE and MAE in various number of images for the proposed robust multi-light method.}
+\label{fig:result_runtime}
+\end{figure}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Real Data Evaluations}
 %----------------------------------------------
+Except for the quantitative evaluation, we have found out that our robust multi-light method also exceeds the state-of-the-art methods qualitatively in many aspects.
+In this part, we will first show the robustness of depth estimation of our method on the objects with complex albedo.
+Then, we will demonstrate the performance on the non-Lambertian (specular) objects.
+Moreover, as mentioned in chapter~\ref{chap:background}, uncalibrated photometric stereo suffers from the GBR ambiguity.
+So we will finally exemplify that our method also outperforms other photometric stereo algorithms because of the input depth cues.
 
-try to add noise on some of the images in the synthetic dataset and check the effectiveness of our method for robust normal recovery
 %----------------------------------------------
 \subsection{Complicated albedo objects}
 %----------------------------------------------
@@ -274,7 +317,6 @@ try to add noise on some of the images in the synthetic dataset and check the ef
    \includegraphics[height = 0.24\linewidth]{figures/result/rgbd_patternShirt_shape.pdf} &
    \includegraphics[height = 0.24\linewidth]{figures/result/robust_patternShirt_shape.pdf}\\
 
-
    {Input} & {RGBD-Fusion~\cite{or2015rgbd}} & {Proposed Multi-Light Model}               
  \end{tabular}}
 \caption{Comparison our multi-light model with RGBD-Fusion in two specular objects. On the first column, the RGB images of the folder and the vase are ones of  the 10 various illuminations. First and third rows correspond to the surface normal from the refined depth, while second and fourth are the refined depth.}
@@ -285,6 +327,20 @@ try to add noise on some of the images in the synthetic dataset and check the ef
 %----------------------------------------------
 \subsection{Specular (non-Lambertian) objects}
 %----------------------------------------------
+We also compare our multi-light method with the RGBD-Fusion~\cite{or2015rgbd} method.
+Same as last section, we turned off the Laplacian smoothness term in their method for the sake of fairness.
+
+The Lambertian reflectance model is built up based on the Lambert's cosine law which the diffused object is the prerequisite.
+It should not work with the non-Lambertian objects theoretically.
+Indeed, the shapes recovered from RGBD-Fusion appear very obvious artefacts in the specular areas, as we can notice in Fig.~\ref{fig:comp_specular}.
+This is because the specular area is "light polluted" and we cannot retrieve any color or shape details from it.
+In contrast, although the Lambertian model is also applied in our robust multi-light method, it can still recover the real shapes with the presence of specularity.
+
+To explain the reason that our method is working, we first assume that 10 input color images are given.
+We know the specularity in each image differs from all others owing to the fact that we move the active LED light location.
+This means, the specularity appearing in a certain image has a high probability not to be specular again in the rest 9 images.
+And in the albedo and depth refinement of our algorithm, we estimate the albedo and the depth with least square using all 10 images instead of one, so the specular area in that image will be treated as the 
+Therefore, 
 
 
 %&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -317,7 +373,7 @@ try to add noise on some of the images in the synthetic dataset and check the ef
    {Input} & {RGBD-Fusion~\cite{or2015rgbd}} & {Proposed Multi-Light Model}               
  \end{tabular}}
 \caption{Comparison our multi-light model with RGBD-Fusion in two specular objects. On the first column, the RGB images of the folder and the vase are ones of  the 10 various illuminations. First and third rows correspond to the surface normal from the refined depth, while second and fourth are the refined depth.}
-\label{fig:comp_complicated_albedo}
+\label{fig:comp_specular}
 \end{figure}
 
 %----------------------------------------------

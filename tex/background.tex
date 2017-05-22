@@ -60,6 +60,21 @@ When the depth super-resolution is required, the RGB images have the resolution 
 
 The well-known shape from shading (SFS) problem was first introduced by Horn~\cite{horn1970shape} in 1970 and then a large amount of literatures flooded in to develop the field.
 The idea of SFS is, knowing the light source position, one can estimate the shape or the surface of an object from one single grayscale image.
+This inverse problem of SFS is highly ill-posed, which has been illustrated in Fig.~\ref{fig:paint}.
+
+
+\begin{figure}[!ht]
+\centering
+\subfigure[An image]{\includegraphics[width=0.25\linewidth]{figures/paint.png}}
+\subfigure[A possible explanation~\cite{barron2015shape}]{ \includegraphics[width=0.3\linewidth]{figures/paint0.png}}\\
+\subfigure[painter's explanation]{\includegraphics[width=0.2\linewidth]{figures/paint1.png}}
+\subfigure[sculptor's explanation]{\includegraphics[width=0.3\linewidth]{figures/paint2.png}}
+\subfigure[Lighting designer's explanation]{\includegraphics[width=0.3\linewidth]{figures/paint3.png}}
+\caption{Various explanations for a twice-bent surface. Images are from~\cite{adelson1996perception}}
+\label{fig:paint}
+\end{figure}
+
+
 From the mathematical perspective, a SFS problem can be formulated as follows:
 \begin{equation}\label{eq:sfs_equation}
     I = \rho S
