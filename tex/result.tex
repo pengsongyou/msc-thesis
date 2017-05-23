@@ -22,23 +22,18 @@ Proposed II: Robust Multi-Light  (Eq.~\ref{eq:robust_energy})                   
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Quantitative Evaluation}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 %-------------------------------------------------------------------------------
 \subsection{Data generation}
 %-------------------------------------------------------------------------------
 In order to quantitatively validate the performance of our proposed methods and our implementation of the RGBD-Fusion, we use the well-known "The Joyful Yell" dataset with 3 point light sources and ambient lights. 
-Three various albedo scenarios are considered: 
-\begin{itemize}
-    \item Red, green and blue piece-wise constant areas
-    \item Colorful patterns with a few small details inside\footnote{EBSD map. Image Courtesy of \url{https://mtex-toolbox.github.io/files/doc/EBSDSpatialPlots.html}}
-    \item Colorful patterns with complicated details\footnote{1000 Visual Mashups. Image Courtsesy of \url{https://www.flickr.com/photos/qthomasbower/3470650293}}
-\end{itemize}
-
 
 To simulate the natural scene illumination, we assume the RGB lighting as frontal directions, so the first-order SH parameters are modelled as:
 \begin{equation*}
     \mathbf{s}_R = \mathbf{s}_G = \mathbf{s}_B = \begin{bmatrix} 0 & 0& -1 & 0.2\end{bmatrix}^\top
     \qquad
-    \raisebox{-0.7cm}{\includegraphics[height=0.1\textwidth]{figures/result/light9.pdf}}
+    \raisebox{-0.5cm}{\includegraphics[height=0.1\textwidth]{figures/result/light9.pdf}}
 \end{equation*}
 
 And then, in order to reproduce the LED configuration for the proposed RGB ratio model, we define the 3 lighting directions as:
@@ -82,6 +77,13 @@ L =
     \raisebox{-0.4cm}{\includegraphics[height=0.1\textwidth]{figures/result/light10.pdf}}
     \end{split}
 \end{equation*}
+After defining the lightings for various methods, three various albedo scenarios are also considered: 
+\begin{itemize}
+    \item Red, green and blue piece-wise constant areas
+    \item Colorful patterns with a few small details inside\footnote{EBSD map. Image Courtesy of \url{https://mtex-toolbox.github.io/files/doc/EBSDSpatialPlots.html}}
+    \item Colorful patterns with complicated details\footnote{1000 Visual Mashups. Image Courtsesy of \url{https://www.flickr.com/photos/qthomasbower/3470650293}}
+\end{itemize}
+
 
 With the 3 different albedos and all the pre-defined lights, we can create the synthetic color images like the first row in Fig.~\ref{fig:result_syn_comp}.
 
@@ -267,10 +269,7 @@ It has been shown in Fig.~\ref{fig:result_runtime} that the runtime for each ite
 But the impressive observation is, when the image amount increases, two errors first decreases and then go up again. 
 Therefore, if we take the comprehensive consideration, $10-20$ is a suitable number for different number of lightings.
 
- 
-
-
-\begin{figure}[!htbp]
+\begin{figure}[!ht]
     \centering
     \includegraphics[height = 0.6\linewidth]{figures/result/runtime.pdf} 
     \caption{Illustrations for the runtime, RMSE and MAE in various number of images for the proposed robust multi-light method.}
@@ -290,6 +289,16 @@ So we will finally exemplify that our method also outperforms other photometric 
 %----------------------------------------------
 \subsection{Complicated albedo objects}
 %----------------------------------------------
+It has already been illustrated in Fig.~\ref{fig:result_syn_comp} that our robust multi-light method has the capability of the shape of synthetic objects with very complex albedo.
+In constrast, the state-of-the-art depth enhancement methods with one image work well for many simple color objects, but could not separate the complicated albedo from the real shape of the object, which leads to severe artefacts on the final estimated depth. 
+Figure~\ref{fig:comp_complicated_albedo} has proved that this judgment still holds correct for the real-world objects.
+To be fair, we set the parameter for Laplacian smoothness term in RGBD-Fusion to zero.
+
+As we can notice, the first example is a flat colorful iPad cover with an unobvious narrow slot on it.
+The depth and the surface normal recovered from RGBD-Fusion method contain quantities of wrong details from the albedo at the same time that the slot almost disappears.
+On the contrary, our method successfully refines the flat depth of the cover with the visible slot.
+Similarly, there are no differences on the depth among the patterns on the colorful shirt, yet the RGBD-Fusion could not manage to figure out this fact.
+Again, our method is able to get rid of nearly all the patterns and recover the real shape of the shirt. 
 
 %&&&&&&&&&&&&&&&&&&&&&&&&&
 \begin{figure}[!ht]
@@ -327,22 +336,29 @@ So we will finally exemplify that our method also outperforms other photometric 
 %----------------------------------------------
 \subsection{Specular (non-Lambertian) objects}
 %----------------------------------------------
-We also compare our multi-light method with the RGBD-Fusion~\cite{or2015rgbd} method.
-Same as last section, we turned off the Laplacian smoothness term in their method for the sake of fairness.
+Again, we also compare our multi-light method with the state-of-the-art depth refinement approach~\cite{or2015rgbd}.
+Same as the last section, we turned off the Laplacian smoothness term in their method for the sake of fairness.
 
 The Lambertian reflectance model is built up based on the Lambert's cosine law which the diffused object is the prerequisite.
 It should not work with the non-Lambertian objects theoretically.
-Indeed, the shapes recovered from RGBD-Fusion appear very obvious artefacts in the specular areas, as we can notice in Fig.~\ref{fig:comp_specular}.
-This is because the specular area is "light polluted" and we cannot retrieve any color or shape details from it.
-In contrast, although the Lambertian model is also applied in our robust multi-light method, it can still recover the real shapes with the presence of specularity.
+Indeed, the shapes recovered from RGBD-Fusion method appear very obvious artefacts in the specular areas, as we can notice in Fig.~\ref{fig:comp_specular}.
+This is because the specular areas are "light polluted" and no color or shape details can be retrieved.
+However, it turns out that our multi-light approach can still work well and recover the real shapes with the presence of specularity, although the Lambertian model is also applied.
+\begin{figure}[H]
+\centering
+\subfigure[One illumination]{\includegraphics[width=0.3\linewidth]{figures/methodology/sr_rgb_big.pdf}}
+\subfigure[The other illumination]{\includegraphics[width=0.3\linewidth]{figures/methodology/sr_rgb2.pdf}}
+\subfigure[Estimated albedo with multi-light method]{\includegraphics[width=0.3\linewidth]{figures/methodology/sr_albedo.pdf}}
+\caption{Demonstrations for the remedy of specularity of a paper bag. The first two images are under different illuminations among other 8. The third image represents the albedo estimated by our multi-light method. We can clearly see the specular parts in the images appear slightly different color in the albedo, which is the result of the remedy of specularity.}
+\label{fig:specular_illu}
+\end{figure}
 
-To explain the reason that our method is working, we first assume that 10 input color images are given.
-We know the specularity in each image differs from all others owing to the fact that we move the active LED light location.
-This means, the specularity appearing in a certain image has a high probability not to be specular again in the rest 9 images.
-And in the albedo and depth refinement of our algorithm, we estimate the albedo and the depth with least square using all 10 images instead of one, so the specular area in that image will be treated as the 
-Therefore, 
-
-
+To explain the reason why our method is working, we first assume that 10 input color images are given.
+We know the specularity in each image differs from others 9 images owing to the fact that we sway the active LED light location.
+This means, the specularity appearing in a certain image has a high probability not to be specular again in the rest 9.
+Meanwhile, the albedo and depth refinement of our algorithm use all 10 images instead of just the specular one,
+hence, the rest 9 images under the least square would remedy the specularity in that area.
+A very clear example to illustrate the remedy effect of the specularity is shown in Fig.~\ref{fig:specular_illu}.
 %&&&&&&&&&&&&&&&&&&&&&&&&&
 \begin{figure}[!ht]
 \centering
@@ -372,13 +388,89 @@ Therefore,
 
    {Input} & {RGBD-Fusion~\cite{or2015rgbd}} & {Proposed Multi-Light Model}               
  \end{tabular}}
-\caption{Comparison our multi-light model with RGBD-Fusion in two specular objects. On the first column, the RGB images of the folder and the vase are ones of  the 10 various illuminations. First and third rows correspond to the surface normal from the refined depth, while second and fourth are the refined depth.}
+\caption{Comparisons between our multi-light method with RGBD-Fusion in specular objects. Both color images on the first column of are under one out of ten illuminations. First and third rows correspond to the surface normals, while second and fourth are the refined depths.}
 \label{fig:comp_specular}
 \end{figure}
 
 %----------------------------------------------
 \subsection{Comparison with Photometric stereo method}
 %----------------------------------------------
+Also, we would like to show the advantages of our method over other uncalibrated photometric stereo methods to which no rough depth is given as the input.
+Here we compare our robust multi-light method with a state-of-the-art method~\cite{favaro2012closed} from Favaro and Papadhimitri~\footnote{The LDR-PS code can be obtained from author's website \url{http://www.cvg.unibe.ch/tpapadhimitri/}}. 
+Here we call their method LDR-PS.
+
+First we made the comparison on the synthetic dataset of colorful patterns from last section.
+It is noticeable in Fig.~\ref{fig:ps_comp_syn} that the depth enhanced with our method is almost the same as the ground truth.
+The result acquired from LDR-PS seems to have similar appearance with the ground truth from the frontal direction (it looks darker because the estimated depth from LDR-PS method is not always correct).
+However, if we rotate the reconstructed map to the side, we can notice that the discontinuity between the head and body has been over-smoothed and the pedestal is distorted.
+This is the so-called generalized bas-relief ambiguity.
+
+%&&&&&&&&&&&&&&&&&&&&&&&&&
+\begin{figure}[!ht]
+\centering
+\setlength{\tabcolsep}{0.1em} % column spacing
+ {\renewcommand{\arraystretch}{1.6}% row spacing
+\begin{tabular}{c c c c}
+   \multirow{-6}{*}{\parbox[t]{2.5mm}{\rotatebox[origin=c]{90}{\small Frontal}}} &    
+   \includegraphics[height = 0.24\linewidth]{figures/result/comp_gt_shape.pdf} 
+   &
+   \includegraphics[height = 0.24\linewidth]{figures/result/ps2_robust_front.pdf} &
+   \includegraphics[height = 0.24\linewidth]{figures/result/ps2_LDR_front.pdf} \\
+
+   \multirow{-6}{*}{\parbox[t]{2.5mm}{\rotatebox[origin=c]{90}{\small Side}}} &    
+   \includegraphics[height = 0.22\linewidth]{figures/result/ps2_gt.pdf} 
+   &
+   \includegraphics[height = 0.22\linewidth]{figures/result/ps2_robust.pdf} &
+   \includegraphics[height = 0.22\linewidth]{figures/result/ps2_LDR.pdf} \\
+
+  {} & {Ground truth} & {Proposed multi-light method}  & {LDR-PS~\cite{favaro2012closed}}
+ \end{tabular}}
+\caption{Comparison of the recovered depth between our multi-light method and the uncalibrated photometric stereo method LDR-PS on the synthetic dataset.}
+\label{fig:ps_comp_syn}
+\end{figure}
+%&&&&&&&&&&&&&&&&&&&&&&&&&
+
+
+Same problem happens in the real data as well (Fig.~\ref{fig:ps_comp}). 
+Both methods hold almost identical frontal view but the depth in the side view acquired from LDR-PS turns out to have a wrong interpretation. 
+
+
+%&&&&&&&&&&&&&&&&&&&&&&&&&
+\begin{figure}[H]
+\centering
+\setlength{\tabcolsep}{0.1em} % column spacing
+ {\renewcommand{\arraystretch}{1.6}% row spacing
+\begin{tabular}{c c c c}
+ \multirow{-3}{*}{\begin{tabular}{c}\includegraphics[height = .30\linewidth]{figures/result/ps_gt.pdf}\end{tabular}}
+   &
+   \includegraphics[height = 0.26\linewidth]{figures/result/ps_robust_front.pdf} &
+   \includegraphics[height = 0.26\linewidth]{figures/result/ps_LDR_front.pdf} &
+      \multirow{-6}{*}{\parbox[t]{2.5mm}{\rotatebox[origin=c]{-90}{\small Frontal}}}    \\&
+   \includegraphics[height = 0.26\linewidth]{figures/result/ps_robust.pdf} &
+   \includegraphics[height = 0.26\linewidth]{figures/result/ps_LDR.pdf} &
+      \multirow{-6}{*}{\parbox[t]{2.5mm}{\rotatebox[origin=c]{-90}{\small Side}}}\\ 
+  {} & {Proposed Multi-Light Model} & {LDR-PS~\cite{favaro2012closed}} & {}             \\
+ \end{tabular}}
+\caption{Comparison of the recovered depth between our multi-light method and the uncalibrated photometric stereo method LDR-PS on the real-world vase.}
+\label{fig:ps_comp}
+\end{figure}
+%&&&&&&&&&&&&&&&&&&&&&&&&&
+
+%\multirow{2}{*}{
+%  \begin{tabular}{c}
+%  \includegraphics[width=0.15\linewidth]{figures/result/robust_vase_rgb.pdf} \\ Non-realistic \\ initialization 
+%  \end{tabular}} &
+%  % Ours - Dir
+% \parbox[t]{2.5mm}{\rotatebox[origin=c]{90}{Ours}} &
+% \includegraphics[height=0.15\linewidth]{figures/result/robust_vase_rgb.pdf}&
+%  % Ours - SH2
+% \includegraphics[height=0.15\linewidth]{figures/result/robust_vase_rgb.pdf}& 
+%  % Ours - SH2 color
+%\includegraphics[height=0.15\linewidth]{figures/result/robust_vase_rgb.pdf}\\
+% & & {\small MAE-N $= \textbf{27.91}$, RMSE-I $= \textbf{0.01}$} & {\small MAE-N $= \textbf{37.46}$, RMSE-I $= \textbf{0.02}$} & {\small MAE-N $= \textbf{13.80}$, RMSE-I $= \textbf{0.04}$} \\
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 
 %&&&&&&&&&&&&&&&&&&&&&&&&&
 
