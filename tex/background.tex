@@ -149,8 +149,6 @@ As we can see from Fig.~\ref{fig:sfs_ambiguity}, the solution of SFS is ambiguou
 Horn and Brooks~\cite{horn1986variational} proposed the so-called integrability constraint $z_{xy} = z_{yx}$, which was the first constraint imposed on the filed of surface normal to make the SFS problem well-posed. 
 Frankot and Chellapa~\cite{frankot1988method} projected a non-integrable surface to the subspace spanning the valid smooth surface.
 
-{\color{red} put the image from Pentland}
-
 
 Provided we have several images from the same view but with different illuminations, Eq.~\ref{eq:sfs_equation} can be modelled as:
 \begin{equation}\label{eq:ps_equation}
@@ -191,6 +189,7 @@ In terms of depth, the GBR ambiguity is equivalent to the equation~\cite{queau20
 \end{equation}
 Based on the equation, we find out that the GBR ambiguity still exists for the task of depth estimation.
 However, since the rough depth will be given as the input from RGB-D camera, the GBR ambiguity problem encountered by uncalibrated PS is resolved automatically.  
+Two examples about GBR ambiguity can be seen in Fig.~\ref{fig:ps_comp_syn} and~\ref{fig:ps_comp}.
 Now we will discuss some state-of-the-art depth refinement approaches.
 
  
