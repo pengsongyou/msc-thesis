@@ -2,6 +2,16 @@
 
 \begin{enumerate}
     \item Detail about how to build Laplacian efficiently inside the mask
+    \begin{itemize}
+        \item Define a offset vector, which define the offset index of the neighboring pixels centering in (x,y).
+        \item For each certain direction neighbour, we have all their index $iN$
+        \item Find the index inside $iN$ but not in $imask$, which is right outside the boundary of mask (change iN)
+        \item Also move those pixel inside the mask with the neighouring outside (change imask)
+        \item directly calculate the weight between (x,y) and its neighbouring, this can be done for all the modified imask
+        \item after performing to all 4 neighors, we can build a sparse matrix directly.
+    \end{itemize}
+    
+    
     \item the derivation of $\Psi z = 0$ in RGB ratio model part
     \item List of mathmetical symbol like paper "Shading-based Refinement on Volumetric Signed Distance Functions"
 \end{enumerate}

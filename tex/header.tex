@@ -12,7 +12,7 @@
 
 \vspace*{-2cm}
 \begin{center}
-{\LARGE\bf High Quality Depth Refinement with Color Photometric Stereo\\} \vspace{2cm} {\Large \textbf{Songyou Peng}}\\
+{\LARGE\bf  High Quality Shape from a RGB-D Camera using Photometric Stereo\\} \vspace{2cm} {\Large \textbf{Songyou Peng}}\\
 \vspace{1.5cm}
 {
 \large 
@@ -46,7 +46,14 @@ $\cdot$}
 
 %ABSTRACT
 \begin{abstract}
-The abstract will go here....
+Low-cost RGB-D cameras are playing an increasingly important role in many computer vision tasks, but their captured depth maps not only do not contain enough details of the objects but also have noisy or missing information.
+This dissertation proposes two novel methods which can refine the rough depth images based on the theory of photometric stereo.
+
+The first method called RGB ratio model can resolve the nonlinearity problem in most of the previous methods and promise a closed-form solution.
+And modern depth refinement approaches could not separate the shape from albedo so visible artefacts may appear on the refined depth.
+We present another robust multi-light method which has the capability of enhancing the imperfect depth without any regularization and outperforms state-of-the-art methods.
+Moreover, we also combine our approach with image super-resolution such that the high-quality and high-resolution depth can be acquired. 
+Quantitative and qualitative experiments have demonstrated the robustness and improvements of the suggested methods.
 
 \vspace*{5cm}
 
@@ -54,11 +61,10 @@ The abstract will go here....
 
 \begin{center}
 \begin{quote}
-\it Research is what I'm doing when I don't know what I'm
-doing.\,\ldots
+\it So you have to trust that the dots will somehow connect in your future. You have to trust in something --- your gut, destiny, life, karma, whatever. This approach has never let me down, and it has made all the difference in my life.
 \end{quote}
 \end{center}
-\hfill{\small Werner von Braun}
+\hfill{\small  --- Steve Jobs}
 
 \end{abstract}
 
@@ -79,5 +85,9 @@ doing.\,\ldots
          {\protect\numberline{Acknowledgments\hspace{-96pt}}}
 
 Leave this part until I finish the whole thesis
+\begin{CJK*}{UTF8}{gbsn}
+????
+\clearpage
+\end{CJK*}
 
 \pagestyle{fancy}

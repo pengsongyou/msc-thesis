@@ -278,7 +278,7 @@ Therefore, if we take the comprehensive consideration, $10-20$ is a suitable num
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Real Data Evaluations}
+\section{Qualitative Evaluation}
 %----------------------------------------------
 Except for the quantitative evaluation, we have found out that our robust multi-light method also exceeds the state-of-the-art methods qualitatively in many aspects.
 In this part, we will first show the robustness of depth estimation of our method on the objects with complex albedo.
@@ -316,10 +316,10 @@ Again, our method is able to get rid of nearly all the patterns and recover the 
    \includegraphics[height = 0.24\linewidth]{figures/result/rgbd_padback_shape.pdf} &
    \includegraphics[height = 0.24\linewidth]{figures/result/robust_padback_shape.pdf}\\
 \hline
-   \includegraphics[height = 0.24\linewidth]{figures/result/robust_patternShirt_rgb.png} 
+   \includegraphics[height = 0.24\linewidth]{figures/result/robust_patternShirt_rgb.pdf} 
    &
-   \includegraphics[height = 0.24\linewidth]{figures/result/rgbd_patternShirt_normal.png} &
-   \includegraphics[height = 0.24\linewidth]{figures/result/robust_patternShirt_normal.png} \\
+   \includegraphics[height = 0.24\linewidth]{figures/result/rgbd_patternShirt_normal.pdf} &
+   \includegraphics[height = 0.24\linewidth]{figures/result/robust_patternShirt_normal.pdf} \\
 
    \includegraphics[height = 0.24\linewidth]{figures/result/robust_patternShirt_shape_init.pdf} 
    &
@@ -393,7 +393,7 @@ A very clear example to illustrate the remedy effect of the specularity is shown
 \end{figure}
 
 %----------------------------------------------
-\subsection{Comparison with Photometric stereo method}
+\subsection{Comparison with photometric stereo method}
 %----------------------------------------------
 Also, we would like to show the advantages of our method over other uncalibrated photometric stereo methods to which no rough depth is given as the input.
 Here we compare our robust multi-light method with a state-of-the-art method~\cite{favaro2012closed} from Favaro and Papadhimitri~\footnote{The LDR-PS code can be obtained from author's website \url{http://www.cvg.unibe.ch/tpapadhimitri/}}. 
