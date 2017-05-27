@@ -80,9 +80,9 @@ With this naive image inpainting algorithm, we can fill the holes on the rough d
 %----------------------------------------------
 \subsection{Depth denoising}
 %----------------------------------------------
-The depth images acquired from the RGB-D cameras with moderate price usually contain various noises. 
-As a standard pre-processing method, the image denoising technique is also applied to our input inpainted depth map.
-Similar to the state-of-the-art depth refinement methods~\cite{zhang2012edge, or2015rgbd, han2013high, or2016real, haque2014high, yu2013shading}, bilateral fitering~\cite{tomasi1998bilateral} is used as our depth pre-processing smoother. 
+The depth images acquired from low-cost RGB-D cameras usually not only contain various noises, but also quantized effect.
+As a standard pre-processing method, the image denoising technique is applied to our inpainted input depth map.
+Similar to the previous depth refinement methods~\cite{zhang2012edge, or2015rgbd, han2013high, or2016real, haque2014high, yu2013shading}, bilateral fitering~\cite{tomasi1998bilateral} is used as our depth pre-processing smoother. 
 
 The advantage of bilateral filter is reducing the noise while preserving the edge in the input image. 
 More than a regular Gaussian smooth filter, which uses only the difference of the image values (depth in our case) between the center pixel the neighbours, the bilateral filter also utilizes the space difference as a reference to build up the weighting function.
@@ -95,9 +95,9 @@ The smoothed result on our input depth image is shown in Fig.~\ref{fig:pre-proce
 
 \begin{figure}[!htbp]
 \centering
-\subfigure[Input depth]{\includegraphics[width=0.30\linewidth]{figures/methodology/inpainting_shape_before.pdf}}
-\subfigure[After inpainting]{\includegraphics[width=0.30\linewidth]{figures/methodology/inpainting_shape_after.pdf}}
-\subfigure[After smoothing]{\includegraphics[width=0.30\linewidth]{figures/methodology/smooth_shape_after.pdf}}
+\subfigure[Input depth]{\includegraphics[width=0.27\linewidth]{figures/methodology/inpainting_shape_before.pdf}}
+\subfigure[After inpainting]{\includegraphics[width=0.27\linewidth]{figures/methodology/inpainting_shape_after.pdf}}
+\subfigure[After smoothing]{\includegraphics[width=0.27\linewidth]{figures/methodology/smooth_shape_after.pdf}}
 \caption{Illustrations for the pre-processing on the depth of the vase.}
 \label{fig:pre-processing}
 \end{figure}
@@ -191,7 +191,7 @@ Since there are known intensity values and surface normal in each pixel within t
 \begin{equation}\label{eq:rgbd_light_estimate}
 \min_{\mathbf{s}} \; \lVert \tilde{\mathbf{n}} \mathbf{s} - I \rVert^2_2
 \end{equation}
-This process only need to be applied once at the beginning of the process since the least squares is not sensitive to the details on the surface, thus the estimation from the smooth surface is enough.
+This process only applies once at the beginning of the process since the least squares is not sensitive to the details on the surface, thus the estimation from the smooth surface is enough.
 
 %----------------------------------------------
 \subsection{Albedo estimation}\label{sec:rgbd_albedo_estimation}
@@ -200,13 +200,32 @@ As mentioned in chapter~\ref{chap:background}, many depth recovery techniques ba
 Such assumption does not fit in with the real-world objects so they perform poorly on the shape estimation for multi-albedo cases.
 In order to acquire a satisfying shape outcome, an effective multi-albedo estimation process is a matter of importance.
 
-We know from Eq.~\ref{eq:rgbd_light_model} that, assuming we have the knowledge of input intensity and estimated shading, the albedo image can be directly obtained from $I/S$.
-However, due to the fact that both input image $I$ and the surface normal $\mathbf{n}$ are noisy, such albedo is prone to the overfitting, which makes the acquired albedo contain all the undesired spatial layout details.
+We know from Eq.~\ref{eq:rgbd_light_model} that, assuming we have the knowledge of input intensity and estimated shading, the albedo image can be directly obtained from $I/(\tilde{\mathbf{n}}\mathbf{s})$.
+However, due to the fact that both input image $I$ and the surface normal $\mathbf{n}$ are noisy, the albedo acquired like this is prone to the overfitting, which makes the acquired albedo contain all the undesired spatial layout details, as illustrated in Fig.~\ref{fig:rgbd_rho_illu}.
 To resolve the overfitting problem, we should impose some restrictions on the estimation of albedo.
 Land's Retinex theory~\cite{land1971lightness} addressed that the reflectance of an object is normally flat with sparse strong variations.
 Indeed, plenty of real-world objects has piecewise smooth appearance as shown in Fig.~\ref{fig:rgbd_illustration}, which means most pieces of a layout are dominated by certain colors.
 Therefore, a prior that emphasizes the piecewise smoothness on the albedo should be defined.
 Such assumption of piecewise smoothness has already been widely used in many photometric stereo methods~\cite{alldrin2008photometric,queau2015solving}.
+
+\begin{figure}[!ht]
+\centering
+\setlength{\tabcolsep}{0.1em} % column spacing
+ {\renewcommand{\arraystretch}{0.6}% row spacing
+\begin{tabular}{c|c c c c}
+   \includegraphics[height = 0.32\linewidth]{figures/methodology/ratio_syn_rgb.pdf} \hspace{0.1em}
+   &\hspace{0.1em}
+      \includegraphics[height = 0.32\linewidth]{figures/methodology/rgbd_rho_prone.pdf} &
+      \includegraphics[height = 0.32\linewidth]{figures/methodology/rgbd_rho_simple.pdf}&
+      \includegraphics[height = 0.32\linewidth]{figures/methodology/ratio_syn_albedoR.pdf}&
+      \includegraphics[height = 0.32\linewidth]{figures/methodology/ratio_syn_albedoGT.pdf} 
+ \\
+   {RGB image} & {$I/(\tilde{\mathbf{n}}\mathbf{s})$} & {Fusion like} &{Ratio model} &{Ground truth}                 
+ \end{tabular}}
+\caption{Comparison for the estimated albedo under the synthetic data. Noted that here the light parameter is given. From left to right: the albedo obtained without regularization, albedo estimated by RGBD-Fusion like method, albedo from the proposed ratio model and the ground truth albedo.}
+\label{fig:rgbd_rho_illu}
+\end{figure}
+
 
 With this assumption, the albedo of an object can be roughly divided into several pieces with different intensities, which can be treated as the image segmentation problem to some extent. 
 Thus, we should refer to some classic variational segmentation methods and adapt the edge preserving smoothness term to our problem.
@@ -408,7 +427,7 @@ The overall energy for the proposed RGB ratio model method is:
 \end{equation}
 where $\mathcal{P}$ is the stack of RGB albedo, and $\mathscr{R}$ denotes our ratio model which will be defined separately in the following part.
 This energy is successively composed of a proposed ratio shading term, a depth fidelity term, an albedo smoothness term, an albedo fidelity term and a SH estimation term.
-Now we will explain our proposed algorithm based on the new ratio model.
+Now we will explain the proposed algorithm based on a new ratio model.
 
 %The key to this ratio model is to enlarge the difference of pixel values, light directions and the albedo in 3 channels
 
@@ -913,15 +932,15 @@ With the input small depth $z_0\in\mathbb{R}^m$ and a downsampling kernel $K \in
 \end{equation}
  %$$$$$$$$$$$$$$$$$
  After optimizing this energy, we will acquire the super-resolution version refined depth, which has been illustrated in Fig.~\ref{fig:robust_sr}.
-  \begin{figure}[!htbp]
+  \begin{figure}[!ht]
 \centering
-\subfigure[One input image $(960\times1280)$]{\includegraphics[width=0.32\linewidth]{figures/methodology/sr_rgb_big.pdf}}
-\subfigure[Estimated albedo $(960\times1280)$]{\includegraphics[width=0.32\linewidth]{figures/methodology/sr_albedo.pdf}}
-\subfigure[Estimated normal$(960\times1280)$]{\includegraphics[width=0.32\linewidth]{figures/methodology/sr_normal.pdf}}
-\subfigure[Input depth image $(480\times640)$]{\includegraphics[width=0.23\linewidth]{figures/methodology/sr_shape_before.pdf}}
+\subfigure[One input image $(960\times1280)$]{\includegraphics[width=0.31\linewidth]{figures/methodology/sr_rgb_big.pdf}}
+\subfigure[Estimated albedo $(960\times1280)$]{\includegraphics[width=0.31\linewidth]{figures/methodology/sr_albedo.pdf}}
+\subfigure[Estimated normal$(960\times1280)$]{\includegraphics[width=0.31\linewidth]{figures/methodology/sr_normal.pdf}}
+\subfigure[Input depth image $(480\times640)$]{\includegraphics[width=0.22\linewidth]{figures/methodology/sr_shape_before.pdf}}
 \quad
-\subfigure[Smoothed depth image $(480\times640)$]{\includegraphics[width=0.23\linewidth]{figures/methodology/sr_shape_smooth.pdf}}
-\subfigure[Refined super-resolution depth $(960\times1280)$]{\includegraphics[width=0.46\linewidth]{figures/methodology/sr_shape_after.pdf}}
+\subfigure[Smoothed depth image $(480\times640)$]{\includegraphics[width=0.22\linewidth]{figures/methodology/sr_shape_smooth.pdf}}
+\subfigure[Refined super-resolution depth $(960\times1280)$]{\includegraphics[width=0.44\linewidth]{figures/methodology/sr_shape_after.pdf}}
 \caption{Results of the super-resolution depth of a paper bag. Input depth size is $480\times 640$, and the refined depth's is $960 \times 1280$.}
 \label{fig:robust_sr}
 \end{figure}

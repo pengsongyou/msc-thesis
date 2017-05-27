@@ -1,17 +1,29 @@
-\chapter{Implementation details}\label{appendix:implement}
+\chapter{Build anisotropic Laplacian matrix}\label{appendix:implement}
 
-\begin{enumerate}
-    \item Detail about how to build Laplacian efficiently inside the mask
-    \begin{itemize}
-        \item Define a offset vector, which define the offset index of the neighboring pixels centering in (x,y).
-        \item For each certain direction neighbour, we have all their index $iN$
-        \item Find the index inside $iN$ but not in $imask$, which is right outside the boundary of mask (change iN)
-        \item Also move those pixel inside the mask with the neighouring outside (change imask)
+When refining the depth with Eq.~\ref{eq:rgbd_albedo_estimate} using RGBD-Fusion Like method, there is an anisotropic Laplacian regularization term $\lVert \sum_{k \in \mathcal{N}} \omega_k (\rho - \rho_k) \rVert^2_2$ for each pixel.
+To efficiently minimizing the energy, it is preferable to change the regularization term to a matrix form $\lVert \mathbf{L}\rho \rVert^2_2$, where $\mathbf{L}\in \mathbb{R}^{m\times m}$ is called the Laplacian matrix and $\rho\in\mathbb{R}^m$ is the vectorized albedo, and $m$ is the number of pixel inside the given mask $\mathcal{M}$.
+
+If we build the $\mathbf{L}$ by going through all the pixels with a loop, the computational time is extremely expensive.
+Thereby, we here explain the efficient way to build such a matrix step by step.
+Provided we have the input image with the height and width $\begin{pmatrix} h &w \end{pmatrix}$, $\mathbf{i}_\mathcal{M}$ represents the indexes of all the pixels inside $\mathcal{M}$. We only consider the 4-connection neighbourhood. 
+
+ \begin{itemize}
+        \item Define an offset vector $ \mathbf{o} = \begin{bmatrix} -h& -1& h& 1 \end{bmatrix}^\top$, which represents the offset index of the neighboring pixels of a pixel $(x,y)$.
+        \item We have all neighbouring indexes by $\mathbf{i}_\mathcal{M} + \mathbf{o}$ for each component inside $\mathbf{o}$, and get a long vector $\mathbf{i}_{\mathcal{N}}\in\mathbb{R}^{4m}$ which denotes all the neighbouring indexes for the pixels inside $\mathcal{M}$.
+        \item Eliminate the neighbouring indexes in $\mathbf{i}_{\mathcal{N}}$ which does not belong to $\mathcal{M}$
+        \item Also remove those pixels inside $\mathcal{M}$ with their neighouring outside (change imask)
         \item directly calculate the weight between (x,y) and its neighbouring, this can be done for all the modified imask
         \item after performing to all 4 neighors, we can build a sparse matrix directly.
     \end{itemize}
+   
+
+\begin{enumerate}
+   
     
     
     \item the derivation of $\Psi z = 0$ in RGB ratio model part
     \item List of mathmetical symbol like paper "Shading-based Refinement on Volumetric Signed Distance Functions"
 \end{enumerate}
+
+
+\chapter{Build anisotropic Laplacian matrix}\label{appendix:dd}
