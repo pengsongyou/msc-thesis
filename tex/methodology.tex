@@ -4,7 +4,7 @@ However, the results of these applications are often limited by the bad quality 
 It would be very gratifying if we could improve the defective depth maps, such that all the depth-related tasks are likely further developed.
 %Hence, Therefore, we discovered the field of depth refinement techniques and proposed our methods.
 
-In this chapter, we first introduce some pre-processing techniques to fill the missing areas and reduce the noise of the input depth image. 
+In this chapter, we first introduce some pre-processing techniques to fill the missing areas and reduce the noise and quantization effects on the input depth image. 
 Then, we describe in detail one of the state-of-the-art depth refinement method from Or-El \emph{et al.}~\cite{or2015rgbd} which we have chosen to implement as a starting point.
 A method based on an RGB ratio model is then followed and introduced to eliminate the nonlinearity in most of the modern depth enhancement methods.
 Finally, another proposed technique which does not require any regularization terms is presented. 
@@ -41,7 +41,7 @@ Since the idea of image inpainting is to automatically replace the lost or undes
 \label{fig:inpainting1}
 \end{figure}
 
-It should be noted that, the depth inpainting is applied to the input rough depth map so there is no need to use some powerful and advanced algorithms.
+It should be noted that, the depth inpainting is applied to the input rough depth map so there is no need to use any powerful and advanced algorithms.
 The only request is to fill the missing areas with inexpensive computational time.
 
 The idea of a classic inpainting algorithm~\cite{bertalmio2000image} can be described as follows.
@@ -58,11 +58,11 @@ The other is that the lines reaching the edge of $\Omega$ should be continued an
 Again, due to the fact that our input depth images already have poor quality, the lines arriving at the boundary $\delta \Omega$ may be incorrect or produced by the noises.
 Thus, it is reasonable that our initial depth inpainting problem merely focuses on the smooth propagation from the neighbours and fill in the holes.
 
-In each pixel $(x_0, y_0)$ inside $\Omega$, $U$ can be modelled as a discrete four-neighbour Laplacian operator:
+In each pixel $(x, y)$ inside $\Omega$, $U$ can be modelled as a discrete four-neighbour Laplacian operator:
 \begin{equation}
 \begin{split}
-U(x_0, y_0) = \Delta I_{\Omega}
-                = 4I(x_0, y_0) - I(x_0 + 1, y_0) - I(x_0 - 1, y_0) - I(x_0, y_0+1) - I(x_0 , y_0 -1)
+U(x, y) = \Delta I_{\Omega}
+                = 4I(x, y) - I(x + 1, y) - I(x - 1, y) - I(x, y+1) - I(x, y -1)
 \end{split}
 \end{equation}
 Now the inpainting problem can be represented as a minimization problem: 
@@ -71,11 +71,11 @@ Now the inpainting problem can be represented as a minimization problem:
 \end{equation}
 This energy function can be reformulated to a typical linear equation in matrix form:
 \begin{equation}
-\mathbf{Ax=b}
+\mathbf{Ax_{in}=b}
 \end{equation}
-Assuming $m$ is the number of pixel inside $\Omega$ and $n$ is the sum of $m$ and the number of neighbouring pixel around the boundary $\delta \Omega$, $\mathbf{A}$ is a $n\times m$ Laplacian matrix, $\mathbf{b}$ is a $n\times1$ vector containing all the known boundary depth values and the $0$ inside $\Omega$.
-Solving the linear equation with simple least squares, we can acquire the inpainted values.
-With this naive image inpainting algorithm, we can fill the holes on the rough depth image as shown in Fig.~\ref{fig:pre-processing}.
+Assuming $m$ is the number of pixel inside $\Omega$ and $nb$ is the sum of $m$ and the number of neighbouring pixel around the boundary $\delta \Omega$, $\mathbf{A}\in\mathbb{R}^{nb\times m}$ is a Laplacian matrix and $\mathbf{b}\in\mathbb{R}^{nb}$ is a vector containing all the known boundary depth values as well as the $0$ inside $\Omega$.
+Solving the linear equation with simple least squares, we can acquire the inpainted values $\mathbf{x_{in}}$ within $\Omega$.
+With this simple but efficient inpainting algorithm, we can fill the holes on the rough depth image as shown in Fig.~\ref{fig:pre-processing}.
 
 %----------------------------------------------
 \subsection{Depth denoising}
@@ -88,9 +88,9 @@ The advantage of bilateral filter is reducing the noise while preserving the edg
 More than a regular Gaussian smooth filter, which uses only the difference of the image values (depth in our case) between the center pixel the neighbours, the bilateral filter also utilizes the space difference as a reference to build up the weighting function.
 The filtered pixel value can be modelled as a weighted sum of neighbouring pixels:
 \begin{equation}
-\hat{I}(\mathbf{x}) = \frac{1}{W}\sum_{\mathbf{y} \in \mathcal{N}} I(\mathbf{y})e^{-(\frac{\lVert I(\mathbf{x}) - I(\mathbf{y})\rVert^2}{2\sigma_r^2} + \frac{\lVert \mathbf{x} - \mathbf{y}\rVert^2}{2\sigma_d^2})}
+\hat{I}(\mathbf{p}) = \frac{1}{W}\sum_{\mathbf{q} \in \mathcal{N}} I(\mathbf{q})e^{-(\frac{\lVert I(\mathbf{p}) - I(\mathbf{q})\rVert^2}{2\sigma_r^2} + \frac{\lVert \mathbf{p} - \mathbf{q}\rVert^2}{2\sigma_d^2})}
 \end{equation}
-where $\hat{I}(\mathbf{x})$ is the filtered value at pixel $\mathbf{x} = (x,y)$, $\mathcal{N}$ represents the neighbouring pixels with $\mathbf{x}$ in the center, and $W$ is the sum of the all the neighbouring weights centering in $\mathbf{x}$, $\sigma_r$ and $\sigma_d$ denote the parameters controlling the spatial and depth weighting respectively. 
+where $\hat{I}(\mathbf{p})$ is the filtered value at pixel $\mathbf{p} = (x,y)$, $\mathcal{N}$ represents the neighbouring pixels with $\mathbf{p}$ in the center, and $W$ is the sum of the all the neighbouring weights centering in $\mathbf{p}$, $\sigma_r$ and $\sigma_d$ denote the parameters controlling the spatial and depth weighting respectively. 
 The smoothed result on our input depth image is shown in Fig.~\ref{fig:pre-processing}.
 
 \begin{figure}[!htbp]
@@ -98,7 +98,7 @@ The smoothed result on our input depth image is shown in Fig.~\ref{fig:pre-proce
 \subfigure[Input depth]{\includegraphics[width=0.27\linewidth]{figures/methodology/inpainting_shape_before.pdf}}
 \subfigure[After inpainting]{\includegraphics[width=0.27\linewidth]{figures/methodology/inpainting_shape_after.pdf}}
 \subfigure[After smoothing]{\includegraphics[width=0.27\linewidth]{figures/methodology/smooth_shape_after.pdf}}
-\caption{Illustrations for the pre-processing on the depth of the vase.}
+\caption{Illustrations for the pre-processing on the depth image of the vase.}
 \label{fig:pre-processing}
 \end{figure}
 
@@ -106,7 +106,7 @@ After the pre-processing procedure, we have an initial smooth and inpainted dept
 It will be used as the input of all the depth refinement methods detailed in the following sections.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{RGBD-Fusion Like method}
+\section{RGBD-Fusion Like Method}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 RGBD-Fusion is a state-of-the-art depth recovery method proposed by Or-El \emph{et al.}~\cite{or2015rgbd} in 2015.
 This novel method is adequate for natural scene illumination and able to enhance the depth map much faster than other methods.
@@ -120,7 +120,7 @@ This is the reason we call our first method "RGB-Fusion Like" method.
 
 The natural uncalibrated illumination condition means the light is no longer a point light source, thus a Lambertian model is not sufficient. 
 Basri and Jocobs~\cite{basri2003lambertian} have found that low order spherical harmonics (SH) model can well set out the irradiance of the diffused objects under the natural scene.
-More specifically, the first-order SH model can capture 87.5\% of natural lighting, whose form is extended from the Lambertian model:
+More specifically, the first-order SH model can capture 87.5\% of natural lighting, whose form is extended from the Lambertian reflectance model:
 %$$$$$$$$$$$$$$$$$$
 \begin{equation}\label{eq:rgbd_light_model}
 I(x,y) = \rho(x,y)(\mathbf{l}^\top \mathbf{n}(x,y) + \varphi)
@@ -145,7 +145,7 @@ where
 \tilde{\mathbf{n}}(x,y) = \begin{pmatrix}\mathbf{n}(x,y) \\ 1\end{pmatrix}
 \end{equation}
 %$$$$$$$$$$$$$$$$$$
-$\mathbf{s}$ is the first-order SH parameters. It should be mentioned that the 1st-order SH model is used as the fundamental model throughout the whole methodology part.
+$\mathbf{s}\in\mathbb{R}^4$ is the first-order SH parameters. It should be mentioned that the 1st-order SH model is used as the fundamental model throughout the whole methodology part.
 
 After introducing the preliminary knowledge, the overall energy function for the RGBD-Fusion like method which can jointly estimate lights, albedo and depth is described below:
 %$$$$$$$$$$$$$$$$$$
@@ -175,14 +175,14 @@ Now we will go through the details step by step.
 %----------------------------------------------
 Here the unit length surface normal $\mathbf{n}$ is formulated with orthographic projection, i.e. 
 \begin{equation}\label{eq:rgbd_normal}
-    \mathbf{n}(x,y) = \frac{1}{\sqrt{1 + |\nabla z(x,y)|^2}}
+    \mathbf{n}(x,y) = \frac{1}{\sqrt{|\nabla z(x,y)|^2 + 1}}
     \begin{pmatrix} 
          \nabla z(x,y)\\ 
          -1
      \end{pmatrix}
 \end{equation}
-$\nabla z(x,y)$ represents the gradient of depth image $z(x,y)$ in $x$ and $y$ directions.
-Since we have the input depth from pre-processing, initial $\mathbf{n}_0$ is known.
+$\nabla z(x,y) = \begin{bmatrix} z_x(x,y)& z_y(x,y) \end{bmatrix}^\top$ represents the gradient of depth image $z(x,y)$ in $x$ and $y$ directions.
+Since we have the input depth from pre-processing, the initial normal $\mathbf{n}_0$ is known.
 
 %In the sense of intrinsic image decomposition, an image can be decomposed as the product of albedo and shading, so we can treat $\mathbf{s}^\top \tilde{\mathbf{n}}(x,y) $ in Eq.~\ref{eq:rgbd_light_model2} as the shading image.
 
@@ -191,20 +191,20 @@ Since there are known intensity values and surface normal in each pixel within t
 \begin{equation}\label{eq:rgbd_light_estimate}
 \min_{\mathbf{s}} \; \lVert \tilde{\mathbf{n}} \mathbf{s} - I \rVert^2_2
 \end{equation}
-This process only applies once at the beginning of the process since the least squares is not sensitive to the details on the surface, thus the estimation from the smooth surface is enough.
+This process only applies once at the beginning of the process since the least squares is not sensitive to the details on the surface, thus the estimation from the smooth surface is enough~\cite{or2015rgbd}.
 
 %----------------------------------------------
 \subsection{Albedo estimation}\label{sec:rgbd_albedo_estimation}
 %----------------------------------------------
 As mentioned in chapter~\ref{chap:background}, many depth recovery techniques based on SFS or PS assume constant or uniform albedo.
 Such assumption does not fit in with the real-world objects so they perform poorly on the shape estimation for multi-albedo cases.
-In order to acquire a satisfying shape outcome, an effective multi-albedo estimation process is a matter of importance.
+In order to acquire a decent shape outcome, an effective multi-albedo estimation process is a matter of importance.
 
 We know from Eq.~\ref{eq:rgbd_light_model} that, assuming we have the knowledge of input intensity and estimated shading, the albedo image can be directly obtained from $I/(\tilde{\mathbf{n}}\mathbf{s})$.
 However, due to the fact that both input image $I$ and the surface normal $\mathbf{n}$ are noisy, the albedo acquired like this is prone to the overfitting, which makes the acquired albedo contain all the undesired spatial layout details, as illustrated in Fig.~\ref{fig:rgbd_rho_illu}.
 To resolve the overfitting problem, we should impose some restrictions on the estimation of albedo.
 Land's Retinex theory~\cite{land1971lightness} addressed that the reflectance of an object is normally flat with sparse strong variations.
-Indeed, plenty of real-world objects has piecewise smooth appearance as shown in Fig.~\ref{fig:rgbd_illustration}, which means most pieces of a layout are dominated by certain colors.
+Indeed, plenty of real-world objects has piecewise smooth appearance as shown in Fig.~\ref{fig:rgbd_illustration}, which means most parts of a layout are dominated by certain colors.
 Therefore, a prior that emphasizes the piecewise smoothness on the albedo should be defined.
 Such assumption of piecewise smoothness has already been widely used in many photometric stereo methods~\cite{alldrin2008photometric,queau2015solving}.
 
@@ -276,7 +276,7 @@ And now the depth refinement problem in Eq.~\ref{eq:rgbd_depth_refine} is reform
 \end{equation}
 As long as the energy decreases in each iteration, the process is repeated.
 
-To sum up the approach in this section, it should be noted that the SFS term was used as a core in all light, albedo and depth estimation in the overall energy.
+To sum up this section, it should be noted that the SFS term was used as a core in all light, albedo and depth estimation in the overall energy.
 The whole process of the RGBD Fusion-Like method has been described in Alg.~\ref{alg:rgbd_fusion} and some real-world results are shown in Fig.~\ref{fig:rgbd_illustration}.
 
 
@@ -343,11 +343,11 @@ Although our RGBD-Fusion like method works moderately well in some real cases, i
 \begin{itemize}
 \item the surface normal modelled by the orthographic projection is merely an ideal case which is not really in line with the real world camera model.
 And the intrinsic parameters such as the focal length and the coordinate of the principle point are either usually given as a preliminary knowledge, or obtained from camera calibration without much effort.
-Hence, it is reasonable to formulate the surface normal with the perspective projection model.
+Hence, it is reasonable to formulate the surface normal with the perspective projection.
 
-\item In our RGBD-Fusion like method, only the intensity is applied because the values in RGB channels are more or less the same under the natural scene illumination. 
+\item In our RGBD-Fusion like method, only the intensity is applied because the pixel values in RGB channels are more or less the same under the natural scene illumination. 
 When we estimated the SH lighting parameters and the albedo in 3 channels separately, the results are quite similar to each other.
-So using all three channels rather than just the grayscale image will not provide much extra information and improve the depth enhancement. 
+So using all three channels rather than just the grayscale image will neither provide much extra information nor improve the depth enhancement. 
 Instead, it will just decelerate the whole algorithm.
 We ought to find a way to take better advantages of all three channels in a photometric stereo manner.
 
@@ -360,14 +360,14 @@ Therefore, we thought of the idea of RGB ratio model, which can eliminate the de
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Proposed method I: RGB Ratio Model}
+\section{Proposed Method I: RGB Ratio Model}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 According to the limitations in the last section, we thought of the idea of RGB ratio model.
-First of all, we replace the orthographic projection model with the perspective one.
+First of all, we replace the orthographic projection model with the perspective one to represent the surface normal .
 And then, to fully use the information of the RGB three channels while eliminating the nonlinearity in the objective function in the depth refinement, we use the ratio model between every pairs of the RGB image.
 
-It should be noted that we need to add active R, G and B 3 LED lights for the sake of emphasizing the difference among RGB channels.
+It should be noted that we need to add active red, green and blue LED lights for the sake of emphasizing the difference among RGB channels.
 The green LED is installed in the middle with the red and blue ones on the two sides of ASUS Xtion Pro Live camera (both are around 30 cm to the green LED).
 The hardware setup of our system and a color image taken with such setup are illustrated in Fig.~\ref{fig:ratio_setup}.
 
@@ -375,7 +375,7 @@ The hardware setup of our system and a color image taken with such setup are ill
 \centering
 \subfigure[LED lights setup]{\includegraphics[width=0.45\linewidth]{figures/methodology/ratio_setup.JPG}}
 \subfigure[A color image with our lighting setup]{\includegraphics[width=0.45\linewidth]{figures/methodology/ratio_setup_view.pdf}}
-\caption{Illustrations for the RGB LED setup and the corresponding image.}
+\caption{Illustrations for the color LEDs setup and the acquired RGB image.}
 \label{fig:ratio_setup}
 \end{figure}
 
@@ -414,7 +414,7 @@ For the sake of simplicity we directly represent $z = \log z$ and redefine $\mat
      \end{pmatrix}
 \end{equation}
 %$$$$$$$$$$$$$$$$
-where $f$ is the focal length, $(\tilde{x}, \tilde{y}) = (x- x_0, y - y_0)$, with $(x_0, y_0)$ the coordinates of principle points and $(x,y)$ the coordinate of a pixel inside the given mask, $[z_x, z_y]$ is the gradient of depth $z$.
+where $f$ is the focal length, $(\tilde{x}, \tilde{y}) = (x- x_0, y - y_0)$, with $(x_0, y_0)$ the coordinates of principle points and $(x,y)$ the coordinate of a pixel inside the given mask $\mathcal{M}$, $[z_x, z_y]$ is the gradient of depth $z$.
 
 The overall energy for the proposed RGB ratio model method is:
 \begin{equation}\label{eq:ratio_energy}
@@ -425,9 +425,9 @@ The overall energy for the proposed RGB ratio model method is:
     + \sum_{c} \lVert \rho_c \; \mathbf{s}_c^\top \tilde{\mathbf{n}} - &I_c \rVert^2_2, \; \\ &c\in\{R,G,B\}
     \end{split}
 \end{equation}
-where $\mathcal{P}$ is the stack of RGB albedo, and $\mathscr{R}$ denotes our ratio model which will be defined separately in the following part.
-This energy is successively composed of a proposed ratio shading term, a depth fidelity term, an albedo smoothness term, an albedo fidelity term and a SH estimation term.
-Now we will explain the proposed algorithm based on a new ratio model.
+where $\mathcal{P}\in\mathbb{R}^{3m}$ is the stack of RGB albedo, and $\mathscr{R}$ denotes our ratio model which will be defined separately in the following part. $m$ is the number of pixels inside $\mathcal{M}$.
+This energy for RGB ratio model is successively composed of a proposed ratio shading term, a depth fidelity term, an albedo smoothness term, an albedo fidelity term and a SH estimation term.
+Now we will explain the proposed algorithm based on the new ratio model.
 
 %The key to this ratio model is to enlarge the difference of pixel values, light directions and the albedo in 3 channels
 
@@ -435,11 +435,11 @@ Now we will explain the proposed algorithm based on a new ratio model.
 \subsection{Algorithm details}
 %----------------------------------------------
 Similar to the RGBD-Fusion Like method, the algorithm is separated into 3 parts: light estimation, albedo estimation and depth enhancement.
-However, our new method requires an initial estimation of the color albedo as the input of our iterative method, and hence, we calculate the initial SH parameters $\mathbf{l}^{0}$ with Eq.~\ref{eq:rgbd_light_model} and the color albedo $\mathcal{P}^{0}$ with Eq.~\ref{eq:rgbd_albedo_estimate} using the old model.
+However, our new method requires an initial estimation of the color albedo as the input of our iterative method, and hence, we calculate the initial SH parameters $\mathbf{s}^{0}$ with Eq.~\ref{eq:rgbd_light_model} and the color albedo $\mathcal{P}^{0}$ with Eq.~\ref{eq:rgbd_albedo_estimate} using the old model.
 Noted that the initial estimation is performed with respect to all RGB three channels.
 
 \textbf{Albedo refinement:}
-with the acquired $\rho^{0}$ and $\mathbf{l}^{0}$, we can start the iterative refinement process.
+with the acquired initial SH parameters and albedo, we can start the iterative refinement process.
 In order to refine the color albedo with our ratio model, in each iteration, we need to reshape the ratio model described in Eq.~\ref{eq:ratio_rg_sh1} as follows:
 \begin{equation}\label{eq:ratio_albedo_prepare}
 \begin{split}
@@ -468,9 +468,7 @@ For each pixel, we can reformulate the Eq.~\ref{eq:ratio_albedo_prepare} to a ma
         \rho_B \rho_R (\varphi_R\mathbf{l}_B^\top \mathbf{n} - \varphi_B\mathbf{l}_R^\top \mathbf{n})
     \end{pmatrix}
 \end{equation}
-This small linear system can be generalized to a big sparse linear system denoted as $\mathbf{A}_{\rho}\cdot {\mathcal{P}} = \mathbf{b}_{\rho}$.
-The structure of this equation can be found in Appendix~\ref{appendix:implement}.
-Here, $\mathcal{P}$ represents the stack of RGB three albedos.
+This small linear system can be easily generalized to a big sparse linear system denoted by $\mathbf{A}_{\rho}\cdot {\mathcal{P}} = \mathbf{b}_{\rho}$, where $\mathbf{A}_{\rho}\in\mathbb{R}^{3m\times3m}, \mathbf{b}_{\rho}\in\mathbb{R}^{3m}$, and $\mathcal{P} \in\mathbb{R}^{3m} $ represents the stack of RGB three albedos.
 %$$$$$$$$$$$$$$$$
 
 To acquire the RGB albedos, some regularization terms are required similar to Eq.~\ref{eq:rgbd_albedo_estimate}. Now in each iteration, we fix the normal and the SH parameters, the minimization problem of color albedo in Eq.~\ref{eq:ratio_energy} in each iteration now becomes:
@@ -481,7 +479,7 @@ To acquire the RGB albedos, some regularization terms are required similar to Eq
     + \lambda_{\rho}^1 \lVert \omega \nabla \mathcal{P} \rVert^2  
     + \lambda_{\rho}^2 \lVert \mathcal{P} - \mathcal{P}^{(t-1)}\rVert^2
 \end{equation}
-where the weight $\omega = \begin{pmatrix} \omega_R\\ \omega_G\\ \omega_B \end{pmatrix}$, which can be denoted as:
+where the weight $\omega = \text{diag}(\begin{pmatrix} \omega_R\\ \omega_G\\ \omega_B \end{pmatrix}) \in \mathbb{R}^{3m \times 3m}$, which can be denoted as:
 \begin{equation}
 \omega_c = \exp(- \frac{\sigma_c ||\nabla I_c||^2}{\max ||\nabla I_c||^2}), \quad c \in \{R,G,B\}
 \end{equation}
@@ -508,20 +506,20 @@ Without the weight, the isotropic smoothness regularization will not take care o
    \includegraphics[height = 0.32\linewidth]{figures/methodology/ratio_syn_shapeR.pdf} \\
    {Input} & {Ground truth} & {No weight} &{With weight}                 
  \end{tabular}}
-\caption{Illustrations for the importance of the weight $\omega$ inside regularization term in Eq.~\ref{eq:ratio_albedo_refine} when estimating the albedo. Top: first one is the input color image and the rest three are the albedos. Bottom: 3D shape from depth. Noted that here the light parameter is given.}
+\caption{Illustrations for the importance of the weight $\omega$ inside regularization term in Eq.~\ref{eq:ratio_albedo_refine} when estimating the albedo. Top: first one is the input color image and the rest three are the albedos. Bottom: 3D surface from depth. Noted that here the light parameter is given.}
 \label{fig:ratio_albedo_demo}
 \end{figure}
 
 
 There are three interesting aspects of the albedo estimation which worth having a few more words:
 \begin{enumerate}
-    \item One observation about Eq.~\ref{eq:rho_matrix} is that, if the SH parameters are the same among the three channels, the right side of the equal sign becomes 0. 
-    This is one of the reasons why we really need to set up 3 LED lights with a distance to each other, which will provide us with enough difference on the light directions.
-    \item Instead of using anisotropic Laplacian regularization in the RGBD Fusion Like method, the smoothness term in Eq.~\ref{eq:ratio_albedo_refine} only takes the use of the gradient of $\rho$ with a weight only depending on the RGB image's gradient.
-    It takes fewer efforts to build such a smoothness term than the anisotropic term but turns out the acquired albedo is still satisfying.
     \item If we don't use a data fidelity term $\lVert \mathcal{P} - \mathcal{P}^{(t-1)}\rVert^2$, the albedo will get increasingly dark after several iterations. 
     This is due to the fact that there also exist the RGB albedos in $\mathbf{b}_{\rho}$, so $\rho = 0$ will become the solution of our ratio model term.
     Therefore, adding the data term can not only avoid such problem but help refine the albedo iteratively. 
+    \item One observation about Eq.~\ref{eq:rho_matrix} is that, if the SH parameters are the same among the three channels, the right side of the equal sign becomes 0. 
+    This is one of the reasons why we really need to set up 3 LED lights with a distance to each other, which will provide us with enough difference on the light directions.
+    \item Instead of using an anisotropic Laplacian regularization like in RGBD Fusion Like method, the smoothness term in Eq.~\ref{eq:ratio_albedo_refine} only takes the use of the gradient of $\rho$ with a weight only depending on the RGB image's gradient.
+    It takes fewer efforts to build such a smoothness term than the anisotropic term but turns out the acquired albedo is still satisfactory.
 \end{enumerate}
 
 \textbf{Depth refinement}:
@@ -530,13 +528,13 @@ First we reshape Eq.~\ref{eq:ratio_rg_sh1} with the surface normal $\mathbf{n}$ 
 %$$$$$$$$$$$$$$$$
 \begin{equation}\label{eq:ratio_depth1}
 \begin{split}
-\rho_G (I_R - \rho_R \varphi_R)\mathbf{l}_G^T \mathbf{n} - \rho_R (I_G - \rho_G \varphi_G)\mathbf{l}_R^T\mathbf{n} = 0\\
-\rho_B (I_G - \rho_G \varphi_G)\mathbf{l}_B^T \mathbf{n} - \rho_G (I_B - \rho_B \varphi_B)\mathbf{l}_G^T\mathbf{n} = 0\\
-\rho_R (I_B - \rho_B \varphi_B)\mathbf{l}_R^T \mathbf{n} - \rho_B (I_R - \rho_R \varphi_R)\mathbf{l}_B^T\mathbf{n} = 0 
+\rho_G (I_R - \rho_R \varphi_R)\mathbf{l}_G^\top \mathbf{n} - \rho_R (I_G - \rho_G \varphi_G)\mathbf{l}_R^\top\mathbf{n} = 0\\
+\rho_B (I_G - \rho_G \varphi_G)\mathbf{l}_B^\top \mathbf{n} - \rho_G (I_B - \rho_B \varphi_B)\mathbf{l}_G^\top\mathbf{n} = 0\\
+\rho_R (I_B - \rho_B \varphi_B)\mathbf{l}_R^\top \mathbf{n} - \rho_B (I_R - \rho_R \varphi_R)\mathbf{l}_B^\top\mathbf{n} = 0 
 \end{split}
 \end{equation}
 since the normal $\mathbf{n}$ now is a function of $z$, Eq.~\ref{eq:ratio_depth1} can be actually simplified as below (the derivation details can be found in Appendix~\ref{appendix:implement}):
-\begin{equation}
+\begin{equation}\label{eq:psi}
     \Psi z = 0
 \end{equation}
 When the estimated color albedo and light are fixed, the depth refinement problem in Eq.~\ref{eq:ratio_energy} is:
@@ -551,7 +549,7 @@ Since estimating light with the proposed ratio model is an ill-posed problem, we
     \mathbf{s}^{(t)} = \argmin_{\mathbf{s} = (\mathbf{s}_R, \mathbf{s}_G, \mathbf{s}_B)}\sum_{c} \lVert \rho_c \; \mathbf{s}_c^\top \tilde{\mathbf{n}} - I_c\rVert^2_2, \; c\in\{R,G,B\}
 \end{equation}
 
-Alg.~\ref{alg:rgb_ratio} outlines the process of RGB ratio model and Fig.~\ref{fig:ratio_illustration} illustrates the effectiveness of this approach.
+Alg.~\ref{alg:rgb_ratio} outlines the process of RGB ratio model method and Fig.~\ref{fig:ratio_illustration} illustrates the effectiveness of this approach.
 
 \begin{algorithm}[!htbp]
     \begin{algorithmic}[1]
@@ -612,8 +610,8 @@ Alg.~\ref{alg:rgb_ratio} outlines the process of RGB ratio model and Fig.~\ref{f
 %----------------------------------------------
 \subsection{Limitations}
 %----------------------------------------------
-Our method can estimate the albedo and the depth better than our RGBD-Fusion like method in some cases because the non-linearity optimization problem for the RGBD-Fusion like method has been solved.
-Still, there exist some defects:
+The RGB ratio model method can estimate the albedo and the depth better than our RGBD-Fusion like method in some cases owing to that the non-linearity optimization problem in the RGBD-Fusion has been solved.
+Nevertheless, there still exist some defects:
 \begin{itemize}
 \item Three LED lights have to be set up far away from each other.
     As already mentioned about Eq.~\ref{eq:ratio_albedo_prepare}, the albedo refinement may fail if the lights are set too close.
@@ -629,26 +627,26 @@ Still, there exist some defects:
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Proposed method II: Robust Multi-Light Model}
+\section{Proposed Method II: Robust Multi-Light Model}
 
 %----------------------------------------------
 \subsection{Inspiration}
 %----------------------------------------------
-We can notice that the albedo estimation of both our RGBD-Like method and RGB ratio model is highly dependent on the regularization terms which emphasize the piece-wise smoothness.
+We can notice that the albedo estimation of both our RGBD-Like method and RGB ratio model is highly dependent on the regularization terms which emphasize the piecewise smoothness.
 This is a standard approach for almost all the state-of-the-art depth refinement method to estimate the albedo.
 They work fine when the albedo itself is very simple with big patches of patterns and only several dominant colors.
 However, there are more real-world objects containing complicated layout colors and patterns which all these methods with such a process of albedo estimation will fail.
 Were the albedo estimation not working, the outcome of final depth refinement has no chance to be correct. 
 What is more, The parameters for the regularization terms are often needed to be different for various objects, so the parameters tuning for the regularization is tedious and time-consuming.
 
-As a consequence, it is reasonable to propose a new method which is able to eliminate all the regularization terms and estimate complicated albedo.
+As a consequence, it is reasonable to propose a new method which is able to eliminate all the regularization terms and estimate the complicated albedo.
 The necessity of using regularizations for calculating albedo have been mentioned in section~\ref{sec:rgbd_albedo_estimation}, which in short is about avoiding the overfitting problem and eliminating ambiguities if only the shading term is applied.
 Provided we have several color images for a still object with lights coming from various directions, all the images can be jointly used to estimate the albedo of that object.
 Hence, unlike the depth refinement using only one image, the ambiguity in the shading term has been resolved so there is no need to impose any regularizations.
 %{\color{blue} (not sure if it is true) Assuming the $n$ lights directions are estimated while the rough surface normal and $n$ color images are given, in this case, computing the albedo with a least square can resolve the overfitting problem.}
 Fig.~\ref{fig:robust_rho_illustrate} has shown the robustness of our proposed method for the albedo estimation.
 
-In order to simulate the scenario that a direct light comes from different directions, we simply sway a white LED light in different directions and take several images (even just the flashlight on any phone is okay). An example of a vase from different lighting directions is shown in Fig.~\ref{fig:robust_setup}.
+In order to simulate the scenario that a direct light comes from different directions, we simply sway a white LED light in different directions and take several images (even just the flashlight on any phone is sufficient). An example of a vase from different lighting directions is shown in Fig.~\ref{fig:robust_setup}.
 
 \begin{figure}[!htbp]
 \centering
@@ -663,15 +661,15 @@ In order to simulate the scenario that a direct light comes from different direc
 %----------------------------------------------
 \subsection{Algorithm details}
 %----------------------------------------------
-Since we didn't control the lighting with RGB LED lights but one white light, the ratio model in Eq.~\ref{eq:ratio_rg_sh1} is not applicable here.
-We decided to use the standard 1st-order SH model described in Eq.~\ref{eq:rgbd_light_model} again to construct the input color images.
+Since we don't control the lighting with red, green and blue LEDs but one white light, the ratio model in Eq.~\ref{eq:ratio_rg_sh1} is not applicable here.
+We decide to use the standard 1st-order SH model described in Eq.~\ref{eq:rgbd_light_model} again to construct the input color images.
 
 Similar to those two methods mentioned before, the proposed algorithm consists of three parts: light estimation, albedo estimation and depth enhancement. 
 We need to iteratively update all of them but unlike the RGB ratio model method, we don't need to have an initial estimated light and albedo beforehand.
 Instead, the albedo can be assumed to be 1 everywhere and the illuminations can be set to frontal directions at the beginning.
 Then we start refining everything iteratively in the loop, as shown in Alg.~\ref{alg:robust}.
 
-First of all, the SFS model we use for the proposed method is still based on Eq.~\ref{eq:rgbd_light_model}, so the corresponding photometric stereo minimization problem now becomes:
+First of all, the shading model we use for the proposed method is still based on SH model in Eq.~\ref{eq:rgbd_light_model}, so the corresponding photometric stereo minimization problem now becomes:
 %$$$$$$$$$$$$$$$$$
 \begin{equation}
     \sum_{i} \sum_{c} \mathop{\sum \sum}_{(x,y) \in \mathcal{M}} |\rho_c(x,y) \mathbf{s}_{i,c}^\top\tilde{\mathbf{n}}(x,y) - I_{i,c}(x,y)|^2 
@@ -692,7 +690,7 @@ Now the overall energy for our proposed robust multi-light method is characteriz
 %$$$$$$$$$$$$$$$$$
 The mark $\boldsymbol{\cdot}$ denotes element-wise multiplication. 
 As noticed, the new overall energy is extremely simple with only one shading term and one depth fidelity term, without any regularization terms for the albedo or depth estimation.
-And we have found out that $\lambda_z = 0.01$ works well for all cases, which means our system can be used by anybody easily without problems.
+And we have found out that $\lambda_z = 100$ works well for all cases, which means our system can be easily used by anybody without problems.
 
 \textbf{Light estimation}
 In each iteration, we first freeze the albedo and the surface normal and then refine the SH parameters for all input images from the overall energy in Eq.~\ref{eq:robust_energy}.
@@ -703,7 +701,7 @@ In each iteration, we first freeze the albedo and the surface normal and then re
 %$$$$$$$$$$$$$$$$$
 To estimate the light with the simple least squares, we reshape the shading term to a linear problem with the SH light as the argument.
 
-Let $\odot$ denote element-wise multiplication between a vector and each column of a matrix, we have matrices $\mathbf{A}_{\mathbf{s}_{i,c}} = \rho_c \odot \tilde{\mathbf{n}}(z)$ for every channel in all input color images. 
+Let $\boldsymbol{\cdot}$ denote element-wise multiplication between a vector and each column of a matrix, we have matrices $\mathbf{A}_{\mathbf{s}_{i,c}} = \rho_c \boldsymbol{\cdot} \tilde{\mathbf{n}}(z)$ for every channel in all input color images. 
 Therefore, the illuminations can be estimated with the shading term in the energy as below:
 %$$$$$$$$$$$$$$$$$
 \begin{equation}\label{eq:robust_light_estimate2}
@@ -716,13 +714,13 @@ Similar to the light estimation, we need to reshape the SFS term in the overall 
 The energy for the albedo estimation from the overall energy looks like this:
 %$$$$$$$$$$$$$$$$$
 \begin{equation}\label{eq:robust_albedo_estimate}
-    \min_{\rho_c} \; \lVert \mathbf{A}_{\rho_c}\rho_c - \mathbb{I}_c \rVert^2_2 
+    \min_{\rho_c} \; \lVert \mathbf{A}_{\rho_c}\rho_c - \mathbf{I}_c \rVert^2_2 
 \end{equation}
 %$$$$$$$$$$$$$$$$$
-$ \mathbf{A}_{\rho_c} \in \mathbb{R}^{mn \times m}$ is the stack of $n$ diagonal matrices $\text{diag}(\tilde{\mathbf{n}} \cdot \mathbf{s}_{i,c})$, where $\text{diag} : \mathbb{R}^m \rightarrow \mathbb{R}^{m\times m}, i \in \{1, \cdots, n\}$, and $\mathbb{I}_c \in \mathbb{R}^{mn}$ denotes the stack of all the vectorized $I_i$ in channel $c$, which can be represented as:
+$ \mathbf{A}_{\rho_c} \in \mathbb{R}^{mn \times m}$ is the stack of $n$ diagonal matrices $\text{diag}(\tilde{\mathbf{n}} \cdot \mathbf{s}_{i,c})$, where $\text{diag} : \mathbb{R}^m \rightarrow \mathbb{R}^{m\times m}, i \in \{1, \cdots, n\}$, and $\mathbf{I}_c \in \mathbb{R}^{mn}$ denotes the stack of all the vectorized $I_i$ in channel $c$, which can be represented as:
 \begin{equation}
-    \mathbf{A}_{\rho_c} = \begin{pmatrix} \tilde{\mathbf{n}} \cdot \mathbf{s}_{1,c} & &\\ & \ddots & & \\ && \tilde{\mathbf{n}} \cdot \mathbf{s}_{n,c}\\\end{pmatrix} \; \;
-    \mathbb{I}_c = \begin{pmatrix} I_{1,c} \\ \vdots \\ I_{n,c} \end{pmatrix}
+    \mathbf{A}_{\rho_c} = \begin{pmatrix} \text{diag}(\tilde{\mathbf{n}} \cdot \mathbf{s}_{1,c}) \\ \vdots \\ \text{diag}(\tilde{\mathbf{n}} \cdot \mathbf{s}_{n,c})\\\end{pmatrix} \; \;
+    \mathbf{I}_c = \begin{pmatrix} I_{1,c} \\ \vdots \\ I_{n,c} \end{pmatrix}
 \end{equation}
 
 \begin{figure}[!ht]
@@ -730,11 +728,11 @@ $ \mathbf{A}_{\rho_c} \in \mathbb{R}^{mn \times m}$ is the stack of $n$ diagonal
 \setlength{\tabcolsep}{0.2em} % column spacing
  {\renewcommand{\arraystretch}{0.9}% row spacing
 \begin{tabular}{c| c c c}
-   \includegraphics[height = 0.2\linewidth]{figures/methodology/robust_rgb_shirt.pdf}&
-   \includegraphics[height = 0.2\linewidth]{figures/methodology/rgbd_rho_shirt.pdf} &
-   \includegraphics[height = 0.2\linewidth]{figures/methodology/robust_rho_shirt.pdf}&
-   \parbox[b]{1cm}{\includegraphics[width=0.1\textwidth]{figures/methodology/rgbd_rho_shirt_crop.png}\\
-   \includegraphics[width=0.1\textwidth]{figures/methodology/robust_rho_shirt_crop.png}}
+   \includegraphics[height = 0.21\linewidth]{figures/methodology/robust_rgb_shirt.pdf}&
+   \includegraphics[height = 0.21\linewidth]{figures/methodology/rgbd_rho_shirt.pdf} &
+   \includegraphics[height = 0.21\linewidth]{figures/methodology/robust_rho_shirt.pdf}&
+   \parbox[b]{1.5cm}{\includegraphics[width=0.105\textwidth]{figures/methodology/rgbd_rho_shirt_crop.png}\\
+   \includegraphics[width=0.105\textwidth]{figures/methodology/robust_rho_shirt_crop.png}}
         
 %   \begin{subfigure}
 %       \includegraphics[height = 0.08\linewidth]{figures/methodology/rgbd_rho_shirt_crop.png}
@@ -745,7 +743,7 @@ $ \mathbf{A}_{\rho_c} \in \mathbb{R}^{mn \times m}$ is the stack of $n$ diagonal
     \\
    {RGB image} & {RGBD-Fusion~\cite{or2015rgbd}} & {Proposed method}&{}\\
  \end{tabular}}
-\caption{Comparison for the albedo estimation between our proposed robust multi-light method and RGBD-Fusion method. RGBD-Fusion was under our implementation since their source code did not provide the albedo estimation.}
+\caption{Comparison for the albedo estimation between our proposed robust multi-light method and RGBD-Fusion method. RGBD-Fusion was under our implementation since their source code did not provide the albedo estimation. The details show the robustness of our method and the ability of eliminating the shadows on the object.}
 \label{fig:robust_rho_illustrate}
 \end{figure}
 
@@ -821,8 +819,8 @@ Now we define the $\mathbf{A}_z$ and $\mathbf{b}_z$ for our system:
 \end{split}
 \end{equation}
  %$$$$$$$$$$$$$$$$$
- It worths mentioning that in each iteration, we freeze $d$ with $z$ from last iteration to solve the non-linearity.
- Finally, we have stack $\mathbf{A}_{z_c}$ and $\mathbf{b}_{z_c}$ for each channel $c\in\{R,G,B\}$:
+ It worths mentioning that in each iteration, we freeze the denominator $d$ with the $z$ from last iteration to solve the non-linearity.
+ Finally, we stack $\mathbf{A}_{z_c}$ and $\mathbf{b}_{z_c}$ for each channel $c\in\{R,G,B\}$:
  %$$$$$$$$$$$$$$$$$
  \begin{equation}
      \mathbf{A}_z = 
@@ -861,7 +859,7 @@ More examples can be found in chapter~\ref{chap:result}.
          \vspace{1.8mm}
           \WHILE {$ \frac{\Vert E(\rho^{(t)}, z^{(t)}, \mathbf{s}^{(t)}) - E(\rho^{(t-1)}, z^{(t-1)}, \mathbf{s}^{(t)})\Vert}{E(\rho^{(t-1)}, z^{(t-1)}), \mathbf{s}^{(t-1)}} > \epsilon$}
                \vspace{1.8mm}
-                \STATE $\mathbf{s}^{(t)} = \argmin \limits_{\rho} E(\rho^{(t-1)}, z^{(t-1)})$ \COMMENT{Eq.~\ref{eq:robust_light_estimate2}}
+                \STATE $\mathbf{s}^{(t)} = \argmin \limits_{\mathbf{s}} E(\rho^{(t-1)}, z^{(t-1)})$ \COMMENT{Eq.~\ref{eq:robust_light_estimate2}}
             \STATE $\rho^{(t)} = \argmin \limits_{\rho} E(z^{(t-1)}, \mathbf{s}^{(t)})$ \COMMENT{Eq.~\ref{eq:robust_albedo_estimate}}
               \STATE $z^{(t)} = \argmin \limits_{z} E(\rho^{(t)}, z^{(t-1)}, \mathbf{s}^{(t)})$ \COMMENT{Eq.~\ref{eq:robust_depth_estimate}}
               \vspace{1.8mm}
@@ -900,15 +898,15 @@ More examples can be found in chapter~\ref{chap:result}.
 %----------------------------------------------
 \subsection{When super-resolution meets depth refinement}
 %----------------------------------------------
-We can notice that there exist over-smoothing problems in many 3D scanning applications, which is due to the fact that the depth map given by the consumer RGB-D camera usually has a really low resolution.
+We can notice that there exist over-smoothing problems in many 3D scanning applications~\cite{sturm_etal_2013gcpr}, which is due to the fact that the depth map given by the consumer RGB-D camera usually has a really low resolution.
 The scanning or reconstruction results will be then improved if the depth resolution is increased.
-For most of the well-known consumer RGB-D cameras, the depth resolution is far smaller than the RGB resolution.
-For instance, ASUS Xtion Pro Live can acquire $1280\times 1024$ RGB images and $640\times 480$ depth images. Microsoft Kinect 2.0 owns $1920\times1080$ RGB resolution but only $512\times424$ depth one, and Intel RealSense R200 has a $1920\times1080$ RGB camera while the depth reoslution is $640\times 480$.
+For most of the well-known affordable RGB-D cameras, the depth resolution is far smaller than the RGB image resolution.
+For instance, ASUS Xtion Pro Live can acquire $1280\times 1024$ RGB images and $640\times 480$ depth images. Microsoft Kinect 2.0 owns $1920\times1080$ RGB resolution but only $512\times424$ depth one, and Intel RealSense R200 has a $1920\times1080$ RGB camera while its depth reoslution is $640\times 480$.
 It would be very useful if we can not only refine the depth map in its original scale but close to the RGB resolution.  
 
-In this section, we will present our approach to the combination of the photometric stereo and super-resolution, with the help of which we will provide satisfying high-quality and high-resolution depth maps. 
+In this section, we will present our approach to the combination of the robust multi-light method and super-resolution, with the help of which we will provide decent high-quality and high-resolution depth maps. 
 
-The scale factor between the RGB and depth image is around $2$ for ASUS XtionPro Live, so we can at least enlarge our map two times larger than the original size, which means the refined depth resolution will be $1280\times960$.
+The scale factor between the RGB and depth image is around $2$ for ASUS XtionPro Live, so we can at least enlarge our map twice larger than the original size, which means the refined depth resolution will be $1280\times960$.
  And we assume that the input depth image has been registered well (done easily with OpenNI) such that the upsampled depth $Z$ is aligned with the large RGB image after simple interpolation.
 
 Provided the acquired small depth and the super-resolution depth are denoted as $z$ and $Z$ respectively,
@@ -921,27 +919,27 @@ For the sake of simplicity, we don't consider the blurring filter $F$ but only t
 If $z$ and $Z$ are vectorized, $K$ is a 4-connected isotropic downsampling matrix.
 
 In the light and albedo estimation part for the depth super-resolution, the energy in Eq.~\ref{eq:robust_light_estimate2} and Eq.~\ref{eq:robust_albedo_estimate} are directly used. When we build $\mathbf{A}_{\mathbf{s}_c}$ and $\mathbf{A}_{\rho_c}$, the surface normal $\mathbf{n}(z)$ is replaced with $\mathbf{N}(Z)$ which is the normal of the large depth. 
-However, the depth enhancement part with Eq.~\ref{eq:robust_depth_estimate} should be adapted to the super-resolution framework. 
+However, the depth enhancement part (Eq.~\ref{eq:robust_depth_estimate}) should be adapted to the super-resolution framework. 
 As we know, calculating $Z$ from the super-resolution equation in Eq.~\ref{eq:sr_equation} is ill-posed so our shading term can be treated as the regularization term.
 Now, $Z$ is again used to replace $z$ during the construction of $\mathbf{A}_z$ and $\mathbf{b}_z$, which are now denoted by $\mathbf{A}_Z$ and $\mathbf{b}_Z$.
  
-With the input small depth $z_0\in\mathbb{R}^m$ and a downsampling kernel $K \in \mathbb{R}^{m\times M}$ where $M$ and $m$ represent the number of the pixel within the big mask and the small mask respectively, the super-resolution depth refinement energy now is changed to:
+With the input small depth $z_0\in\mathbb{R}^m$ and a downsampling kernel $K \in \mathbb{R}^{m\times M}$ where $m$ and $M$ represent the number of the pixel within the small mask and the big mask respectively, the super-resolution depth refinement energy now is changed to:
  %$$$$$$$$$$$$$$$$$
  \begin{equation}\label{eq:robust_depth_estimate}
     \min_{Z} \; \lVert  \mathbf{A}_{Z}Z - \mathbf{b}_Z\rVert^2_2 + \lambda_{z}\lVert K\cdot Z - z_0 \rVert_2^2
 \end{equation}
  %$$$$$$$$$$$$$$$$$
- After optimizing this energy, we will acquire the super-resolution version refined depth, which has been illustrated in Fig.~\ref{fig:robust_sr}.
+ After optimizing this energy within the framework of the robust multi-light method, we will acquire the super-resolution version refined depth, which has been illustrated in Fig.~\ref{fig:robust_sr}.
   \begin{figure}[!ht]
 \centering
 \subfigure[One input image $(960\times1280)$]{\includegraphics[width=0.31\linewidth]{figures/methodology/sr_rgb_big.pdf}}
 \subfigure[Estimated albedo $(960\times1280)$]{\includegraphics[width=0.31\linewidth]{figures/methodology/sr_albedo.pdf}}
-\subfigure[Estimated normal$(960\times1280)$]{\includegraphics[width=0.31\linewidth]{figures/methodology/sr_normal.pdf}}
+\subfigure[Estimated normal$(960\times1280)$]{\includegraphics[width=0.31\linewidth]{figures/methodology/sr_normal_white.pdf}}
 \subfigure[Input depth image $(480\times640)$]{\includegraphics[width=0.22\linewidth]{figures/methodology/sr_shape_before.pdf}}
 \quad
 \subfigure[Smoothed depth image $(480\times640)$]{\includegraphics[width=0.22\linewidth]{figures/methodology/sr_shape_smooth.pdf}}
 \subfigure[Refined super-resolution depth $(960\times1280)$]{\includegraphics[width=0.44\linewidth]{figures/methodology/sr_shape_after.pdf}}
-\caption{Results of the super-resolution depth of a paper bag. Input depth size is $480\times 640$, and the refined depth's is $960 \times 1280$.}
+\caption{Results of the super-resolution depth of a paper bag using our robust multi-light method. Input depth size is $480\times 640$, and the refined depth's is $960 \times 1280$.}
 \label{fig:robust_sr}
 \end{figure}
 

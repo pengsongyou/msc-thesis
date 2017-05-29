@@ -1,29 +1,184 @@
-\chapter{Build anisotropic Laplacian matrix}\label{appendix:implement}
+%\chapter{Build anisotropic Laplacian matrix}\label{appendix:implement}
+%
+%When refining the depth with Eq.~\ref{eq:rgbd_albedo_estimate} using RGBD-Fusion Like method, there is an anisotropic Laplacian regularization term $\lVert \sum_{k \in \mathcal{N}} \omega_k (\rho - \rho_k) \rVert^2_2$ for each pixel.
+%To efficiently minimizing the energy, it is preferable to change the regularization term to a matrix form $\lVert \mathbf{L}\rho \rVert^2_2$, where $\mathbf{L}\in \mathbb{R}^{m\times m}$ is called the Laplacian matrix and $\rho\in\mathbb{R}^m$ is the vectorized albedo, and $m$ is the number of pixel inside the given mask $\mathcal{M}$.
+%
+%If we build the $\mathbf{L}$ by going through all the pixels with a loop, the computational time is extremely expensive.
+%Thereby, we here explain the efficient way to build such a matrix step by step.
+%Provided we have the input image with the height and width $\begin{pmatrix} h &w \end{pmatrix}$, $\mathbf{i}_\mathcal{M}$ represents the indexes of all the pixels inside $\mathcal{M}$. We only consider the 4-connection neighbourhood. 
+%
+% \begin{itemize}
+%        \item Define an offset vector $ \mathbf{o} = \begin{bmatrix} -h& -1& h& 1 \end{bmatrix}^\top$, which represents the offset index of the neighboring pixels of a pixel $(x,y)$.
+%        \item We have all neighbouring indexes by $\mathbf{i}_\mathcal{M} + \mathbf{o}$ for each component inside $\mathbf{o}$, and get a long vector $\mathbf{i}_{\mathcal{N}}\in\mathbb{R}^{4m}$ which denotes all the neighbouring indexes for the pixels inside $\mathcal{M}$.
+%        \item Eliminate the neighbouring indexes in $\mathbf{i}_{\mathcal{N}}$ which does not belong to $\mathcal{M}$
+%        \item Also remove those pixels inside $\mathcal{M}$ with their neighouring outside (change imask)
+%        \item directly calculate the weight between (x,y) and its neighbouring, this can be done for all the modified imask
+%        \item after performing to all 4 neighors, we can build a sparse matrix directly.
+%    \end{itemize}
+%   
+%
+%\begin{enumerate}
+%   
+%    
+%    
+%    \item the derivation of $\Psi z = 0$ in RGB ratio model part
+%    \item List of mathmetical symbol like paper "Shading-based Refinement on Volumetric Signed Distance Functions"
+%\end{enumerate}
 
-When refining the depth with Eq.~\ref{eq:rgbd_albedo_estimate} using RGBD-Fusion Like method, there is an anisotropic Laplacian regularization term $\lVert \sum_{k \in \mathcal{N}} \omega_k (\rho - \rho_k) \rVert^2_2$ for each pixel.
-To efficiently minimizing the energy, it is preferable to change the regularization term to a matrix form $\lVert \mathbf{L}\rho \rVert^2_2$, where $\mathbf{L}\in \mathbb{R}^{m\times m}$ is called the Laplacian matrix and $\rho\in\mathbb{R}^m$ is the vectorized albedo, and $m$ is the number of pixel inside the given mask $\mathcal{M}$.
+%
+%\chapter{Implementation details}\label{appendix:ratio}
+%Here we extend Eq.~\ref{eq:rho_matrix} for the albedo refinement in the RGB ratio model.
+%Provided the vector $\mathcal{P}\in\mathbb{R}^{3m}$ is the stack of the vectorized albedo in red, green and blue channels, which can be written as:
+%\begin{equation}
+%    \mathcal{P} = 
+%    \begin{pmatrix}
+%        \rho_R\\
+%        \rho_G\\
+%        \rho_B
+%    \end{pmatrix}
+%\end{equation}
+%$\rho_R, \rho_G, \rho_B \in \mathbb{R}^{m}$, $m$ is the number of pixels inside the given mask.
+%
+%\begin{equation}
+%    \begin{pmatrix}
+%        I_G \mathbf{l}_R^\top\mathbf{n} & - I_R \mathbf{l}_G^\top\mathbf{n} & 0 \\
+%        0 & I_B \mathbf{l}_G^\top\mathbf{n} & - I_G \mathbf{l}_B^\top\mathbf{n} \\
+%        - I_B \mathbf{l}_R^\top\mathbf{n} & 0 & I_R \mathbf{l}_B^\top\mathbf{n} 
+%    \end{pmatrix}
+%    \begin{pmatrix}
+%        \rho_R\\
+%        \rho_G\\
+%        \rho_B
+%     \end{pmatrix}
+%    =
+%    \begin{pmatrix}
+%        \rho_R \rho_G (\varphi_G\mathbf{l}_R^\top \mathbf{n} - \varphi_R\mathbf{l}_G^\top \mathbf{n})\\
+%        \rho_G \rho_B (\varphi_B\mathbf{l}_G^\top \mathbf{n} - \varphi_G\mathbf{l}_B^\top \mathbf{n})\\
+%        \rho_B \rho_R (\varphi_R\mathbf{l}_B^\top \mathbf{n} - \varphi_B\mathbf{l}_R^\top \mathbf{n})
+%    \end{pmatrix}
+%\end{equation}
+%This small linear system can be generalized to a big sparse linear system denoted as $\mathbf{A}_{\rho}\cdot {\mathcal{P}} = \mathbf{b}_{\rho}$.
+%
+\chapter{List of Notations}
 
-If we build the $\mathbf{L}$ by going through all the pixels with a loop, the computational time is extremely expensive.
-Thereby, we here explain the efficient way to build such a matrix step by step.
-Provided we have the input image with the height and width $\begin{pmatrix} h &w \end{pmatrix}$, $\mathbf{i}_\mathcal{M}$ represents the indexes of all the pixels inside $\mathcal{M}$. We only consider the 4-connection neighbourhood. 
 
- \begin{itemize}
-        \item Define an offset vector $ \mathbf{o} = \begin{bmatrix} -h& -1& h& 1 \end{bmatrix}^\top$, which represents the offset index of the neighboring pixels of a pixel $(x,y)$.
-        \item We have all neighbouring indexes by $\mathbf{i}_\mathcal{M} + \mathbf{o}$ for each component inside $\mathbf{o}$, and get a long vector $\mathbf{i}_{\mathcal{N}}\in\mathbb{R}^{4m}$ which denotes all the neighbouring indexes for the pixels inside $\mathcal{M}$.
-        \item Eliminate the neighbouring indexes in $\mathbf{i}_{\mathcal{N}}$ which does not belong to $\mathcal{M}$
-        \item Also remove those pixels inside $\mathcal{M}$ with their neighouring outside (change imask)
-        \item directly calculate the weight between (x,y) and its neighbouring, this can be done for all the modified imask
-        \item after performing to all 4 neighors, we can build a sparse matrix directly.
-    \end{itemize}
-   
+\begin{table}[ht]
+\centering
+\caption{List of Notations}
+\vspace{0.1cm}
+%\label{my-label}
+\bgroup
+\def\arraystretch{1.4}%  1 is the default, change whatever you need
+\begin{tabular}{|c|l|}
+\hline
+Notation & \multicolumn{1}{c|}{Description} \\ \hline \hline
+$I$           & Input image                      \\ \hline
+$\rho$      & Albedo                                 \\ \hline
+$z$      & Depth image                                 \\ \hline
+$Z$      & Super-resolution depth image                                 \\ \hline
+$\mathbf{l}$      & Light direction in $\mathbb{R}^3$                                 \\ \hline
+$\varphi$      & Ambient light parameter                                 \\ \hline
+$\mathbf{s}$      & First-order Spherical Harmonics coefficients in $\mathbb{R}^4$                                 \\ \hline
+$\mathbf{n}$         & Surface normal                               \\ \hline
+$\mathcal{M}$         & Binary mask                                 \\ \hline
+$m$        & Number of pixels inside mask $\mathcal{M}$                                 \\ \hline
+$n$         & Number of different illuminations                                 \\ \hline
+$\mathbf{I}$         &  Stack of vectorized images                                \\ \hline
+$\mathcal{P}$         & Stack of vectorized RGB albedos                                  \\ \hline
+$\nabla$         & Gradient operator                                  \\ \hline
+$\Delta$         & Laplacian operator                                  \\ \hline
+$c$         & a certain channel, $c \in\{R,G,B\}$                                  \\ \hline
+$(x,y)$   & pixel coordinate\\ \hline
+\end{tabular}
+\egroup
+\end{table}
 
-\begin{enumerate}
-   
-    
-    
-    \item the derivation of $\Psi z = 0$ in RGB ratio model part
-    \item List of mathmetical symbol like paper "Shading-based Refinement on Volumetric Signed Distance Functions"
-\end{enumerate}
+%\begin{itemize}
+%    \item E.g., $I(x,y)$ represents the intensity value in location $(x,y)$
+%    \item $I, \rho$ and $z$ often stand for their own vectorized version, so in $ \mathbb{R}^m$.
+%    \item $\mathbf{n}(x,y)$
+%\end{itemize}
 
 
-\chapter{Build anisotropic Laplacian matrix}\label{appendix:dd}
+\chapter{Derivation of Matrix $\Psi$ in RGB Ratio Model}\label{appendix:implement}
+In the depth refinement part of RGB ratio model, we can acquire the Eq.~\ref{eq:ratio_depth1}, which we re-write it here:
+\begin{equation}\label{eq:appenx_origin}
+\begin{split}
+\rho_G (I_R - \rho_R \varphi_R)\mathbf{l}_G^\top \mathbf{n} - \rho_R (I_G - \rho_G \varphi_G)\mathbf{l}_R^\top\mathbf{n} = 0\\
+\rho_B (I_G - \rho_G \varphi_G)\mathbf{l}_B^\top \mathbf{n} - \rho_G (I_B - \rho_B \varphi_B)\mathbf{l}_G^\top\mathbf{n} = 0\\
+\rho_R (I_B - \rho_B \varphi_B)\mathbf{l}_R^\top \mathbf{n} - \rho_B (I_R - \rho_R \varphi_R)\mathbf{l}_B^\top\mathbf{n} = 0 
+\end{split}
+\end{equation}
+Here we will explain how to derive $\Psi z = 0$ from Eq.~\ref{eq:ratio_depth1}.
+
+Since the surface normal now is represented using perspective projection with the denominator eliminated, the normal $\mathbf{n}\in\mathbb{R}^{3}$ in each pixel can be written as:
+%\begin{equation}\label{eq:appenx_normal}
+%    \mathbf{n} =
+%     \begin{pmatrix}
+%         f\tilde{z}_x\\
+%         f\tilde{z}_y\\
+%         -1 - (x - x_0)\tilde{z}_x - (y-y_0)\tilde{z}_y
+%     \end{pmatrix}
+%\end{equation}
+%If we want to keep $z$ as itself, it is better to reformulate Eq.~\ref{eq:appenx_normal}:
+\begin{equation}\label{eq:appenx_normal}
+    \mathbf{n} =
+     \begin{pmatrix}
+         fz_x\\
+         fz_y\\
+         -z - \tilde{x}z_x - \tilde{y}z_y
+     \end{pmatrix}
+\end{equation}
+$z_x$ and $z_y$ are the first-order derivative of depth $z\in\mathbb{R}^m$ in $x$ and $y$ directions, $f$ is the focal length and $\tilde{x}=x- x_0,\; \tilde{y}= y - y_0$, with $(x_0, y_0)$ the coordinates of principle points and $(x,y)$ the coordinate of a pixel inside mask $\mathcal{M}$. Let us consider only the first equation (ratio model between the red and green channels) in Eq.~\ref{eq:appenx_origin} and denote:
+\begin{equation}
+    \begin{split}
+        p_{GR} =  \rho_G (I_R -\rho_R \varphi_R)\\
+        p_{RG} =  \rho_R (I_G -\rho_G \varphi_G)
+    \end{split}
+\end{equation}
+After putting Eq.~\ref{eq:appenx_normal} into Eq.~\ref{eq:appenx_origin} and expanding the equation, we acquire:
+\begin{equation}\label{eq:appenx_perpixel}
+    \begin{split}
+        &(p_{GR} \mathbf{l}_G^1 f - p_{RG} \mathbf{l}_R^1 f + p_{RG}\mathbf{l}_R^3 \tilde{x} - p_{GR}\mathbf{l}_G^3 \tilde{x})z_x\\
+        +&(p_{GR} \mathbf{l}_G^2 f - p_{RG} \mathbf{l}_R^2 f + p_{RG}\mathbf{l}_R^3 \tilde{y} - p_{GR}\mathbf{l}_G^3 \tilde{y})z_y\\
+        +& (p_{RG}\mathbf{l}_R^3 - p_{GR}\mathbf{l}_G^3)z = 0
+    \end{split}
+\end{equation}
+Then if we consider all the pixels inside the mask $\mathcal{M}$ and we have the gradient matrices $D_x \in\mathbb{R}^{m\times m}$ and $D_y\in\mathbb{R}^{m\times m}$ in $x$ and $y$ directions. Now assuming $z,\rho, I \in\mathbb{R}^m$, and $\mathbf{x},\mathbf{y}\in\mathbb{R}^m$ represent all the coordinates inside the mask, we first have four diagonal matrices:
+\begin{equation}
+    \begin{split}
+        P_{GR} &= \text{diag}\big(\rho_G \boldsymbol{\cdot} (I_R -\rho_R \varphi_R)\big)\\
+        P_{RG} &= \text{diag}\big(\rho_R \boldsymbol{\cdot} (I_G -\rho_G \varphi_G)\big)\\
+        \tilde{X} &= \text{diag}\big(\mathbf{x} - x_0 \big) \\
+        \tilde{Y} &= \text{diag}\big(\mathbf{y} - y_0 \big) \\
+    \end{split}
+\end{equation}
+The mark $\boldsymbol{\cdot}$ represents element-wise multiplications between two vectors. 
+Eq.~\ref{eq:appenx_perpixel} becomes:
+\begin{equation}\label{eq:complicate}
+    \begin{split}
+        &(P_{GR} \mathbf{l}_G^1 f D_x - P_{RG} \mathbf{l}_R^1 f D_x + P_{RG}\mathbf{l}_R^3 \tilde{X}D_x - P_{GR}\mathbf{l}_G^3 \tilde{X}D_x)z\\
+        +&(P_{GR} \mathbf{l}_G^2 f D_y - P_{RG} \mathbf{l}_R^2 f D_y + P_{RG}\mathbf{l}_R^3 \tilde{Y}D_y - P_{GR}\mathbf{l}_G^3 \tilde{Y}D_y)z\\
+        +& (P_{RG}\mathbf{l}_R^3 - P_{GR}\mathbf{l}_G^3)z = 0
+    \end{split}
+\end{equation}
+After re-arranging, we have the simplified Eq.~\ref{eq:complicate}:
+\begin{equation}
+    (P_{GB}L_{G} - P_{RG}L_{R})z = 0
+\end{equation}
+Then, we can similarly acquire such equationm, and $P_{GB}, P_{BG}, P_{BR}, P_{RB}$ for other two ratio models in Eq.~\ref{eq:appenx_origin}, which can be denoted as belows. Finally, $\Psi\in\mathbb{R}^{3m\times m}$ is acquired.
+\begin{equation}
+\begin{split}
+(P_{GR} L_G - P_{RG} L_R) z &= 0\\
+(P_{BG} L_B - P_{GB} L_G)z &= 0 \quad \Rightarrow \Psi z = 0\\
+(P_{RB} L_R - P_{BR}L_B) z&= 0 
+\end{split}
+\end{equation}
+where
+\begin{equation}
+\begin{split}
+    L_R &= (\mathbf{l}_R^1 f D_x + \mathbf{l}_R^2 f D_y - \mathbf{l}_R^3- \mathbf{l}_R^3 \tilde{X} D_x - \mathbf{l}_R^3 \tilde{Y} D_y )\\
+    L_G &= (\mathbf{l}_G^1 f D_x + \mathbf{l}_G^2 f D_y - \mathbf{l}_G^3- \mathbf{l}_G^3 \tilde{X} D_x - \mathbf{l}_G^3 \tilde{Y} D_y )\\
+     L_B &= (\mathbf{l}_B^1 f D_x + \mathbf{l}_B^2 f D_y - \mathbf{l}_B^3- \mathbf{l}_B^3 \tilde{X} D_x - \mathbf{l}_B^3 \tilde{Y} D_y )\\
+\end{split}
+\end{equation}

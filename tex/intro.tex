@@ -19,11 +19,24 @@
 With the advent of affordable RGB-D cameras, many research areas in modern computer vision, computer graphics and robotics have been boosted significantly, such as 3D modeling and reconstruction, human motion capture and visual SLAM, etc.
 Although the RGB-D sensors can return the depth information in addition to the RGB image, the depth quality is not satisfactory.
 
+%\begin{figure}[!ht]
+%    \centering
+%    \subfigure[RGB image]{\includegraphics[width=0.28\linewidth]{figures/cicero_rgb.pdf}}
+%    \subfigure[Input depth]{\label{fig:cicero_input}\includegraphics[width=0.32\linewidth]{figures/cicero_shape_init.pdf}}
+%    \subfigure[Refined depth with our RGBD-Fusion Like method]{\label{fig:cicero_output} \includegraphics[width=0.32\linewidth]{figures/cicero_shape.pdf}}
+%    \caption{Illustrations for the task of depth refinement. The depths are plotted as a surface for the sake of a better visualization. The RGB-D data is taken by Kinect~\cite{han2013high}.}
+%    \label{fig:intro_illu}
+%\end{figure}
+
 \begin{figure}[!ht]
     \centering
-    \subfigure[RGB image]{\includegraphics[width=0.28\linewidth]{figures/cicero_rgb.pdf}}
-    \subfigure[Input depth]{\label{fig:cicero_input}\includegraphics[width=0.32\linewidth]{figures/cicero_shape_init.pdf}}
-    \subfigure[Refined depth with our RGBD-Fusion Like method]{\label{fig:cicero_output} \includegraphics[width=0.32\linewidth]{figures/cicero_shape.pdf}}
+    \subfigure[RGB image]{\includegraphics[width=0.25\linewidth]{figures/cicero_rgb_rec.pdf}}
+    \subfigure[Input depth]{\label{fig:cicero_input}\includegraphics[width=0.25\linewidth]{figures/cicero_shape_init_rec.pdf}}
+    \subfigure[Refined depth with our RGBD-Fusion Like method]{\label{fig:cicero_output} \includegraphics[width=0.25\linewidth]{figures/cicero_shape_rec.pdf}}
+    \subfigure[Details]{\parbox[b]{2cm}{
+    \includegraphics[width=0.14\textwidth]{figures/cicero_rgb_crop.png}\\
+    \includegraphics[width=0.14\textwidth]{figures/cicero_shape_init_crop.png}\\
+   \includegraphics[width=0.14\textwidth]{figures/cicero_shape_crop.png}}}
     \caption{Illustrations for the task of depth refinement. The depths are plotted as a surface for the sake of a better visualization. The RGB-D data is taken by Kinect~\cite{han2013high}.}
     \label{fig:intro_illu}
 \end{figure}
@@ -31,13 +44,13 @@ Although the RGB-D sensors can return the depth information in addition to the R
 
 As we can notice from Fig.~\ref{fig:cicero_input}, the depth map is very noisy, has the quantization effect and missing depth values.
 What's more, there are no fine details on the rough depth.
-It has been shown that the quality of 3D reconstruction of an object may suffer from the noisy and imperfect depth measurements, and the estimation of camera trajectory will also drift severely because of the accumulated errors on the depths~\cite{maier2013thesis}.
+It has been shown that the quality of 3D reconstruction of an object may suffer from the noisy and imperfect depth measurements, and the estimation of camera trajectory will also drift severely because of the accumulated errors from the rough depths~\cite{maier2013thesis}.
 There are some methods trying to recover these details by fusing all the depth data from multiple views~\cite{newcombe2011kinectfusion}, nevertheless, the recovered details are still very limited.
-Provided we can improve the quality of input rough depth in Fig.~\ref{fig:cicero_input} to the refined depth in Fig.~\ref{fig:cicero_output}, all the tasks which rely on RGB-D sensors can be improved. 
+Provided we can improve the quality of input rough depth in Fig.~\ref{fig:cicero_input} to the refined depth in Fig.~\ref{fig:cicero_output}, all the tasks which rely on RGB-D sensors can be further improved. 
 
-\section{Problem statement}
+\section{Problem Statement}
 
-In this dissertation, we delve into the research of the refinement of a single depth map.
+In this dissertation, we delve into the research of the refinement for a single depth map.
 To refine the depth information from consumer depth sensors, the intrinsic details of an object should be explored with the aid of RGB image(s).
 The analysis includes the positions of the scene illuminations and their corresponding influences on the shading on the object, and also the reflectance (albedo) of the object's material.
 Shape from shading (SFS) and photometric stereo (PS) are the approaches which can study the intrinsic properties of images, so they have been successfully integrated with many state-of-the-art depth enhancement methods.
@@ -47,8 +60,8 @@ Other methods like~\cite{or2015rgbd} freeze the nonlinear part with the outcome 
 However, such fixed-point scheme sometimes causes the optimization to diverge.
 Therefore, we propose a method called RGB ratio model.
 With the red, green and blue LED lights set up in various directions, we are able to build a lighting model for each channel of the color image acquired from RGB-D sensors.
-The proposed setup and model could resolve the nonlinearity and have a closed-form solution. 
-It will be shown in chapter~\ref{chap:result} that the RGB ratio model generally achieves similar accuracy to the state-of-the-art methods and have better performance in some cases.
+The proposed setup and model can resolve the nonlinearity and provide a closed-form solution. 
+It will be shown in chapter~\ref{chap:result} that the RGB ratio model generally achieves similar accuracy to the state-of-the-art methods and has better performance in some cases.
 
 
 Also, it should be mentioned that many shading-based depth refinement methods require making the assumption that the albedo is either uniform or constant~\cite{wu2011shading, han2013high, park2013multiview, haque2014high, queau2017dense}, and others impose some piecewise smoothness constraints on the albedo to make this inverse problem well-posed~\cite{or2015rgbd, or2016real, kim2015joint, wu2014real}.
@@ -57,9 +70,9 @@ So the imposed piecewise smoothness is not commonly realistic.
 Consequently, we present another novel approach called robust multi-light method which can handle the case of very complicated albedos.
 The idea is to acquire several images from various illuminations with fixed camera view, and use all the information to jointly refine light, albedo and depth iteratively.
 To simulate the scenario of multiple lighting conditions, we sway a white LED light source (could be the phone flashlight) and consistently capture images. 
-Compared to other methods, one main advantage of the proposed method is no regularization term needs to be imposed, which saves a number of unpredictable time for tedious parameter tuning process.
+Compared to other methods, one main advantage of the proposed method is no regularization term needs to be imposed, which saves much unpredictable time for tedious parameter tuning process.
 
-Last but not the least, since the depth maps acquired from consumer RGB-D sensors usually do not have the satisfying resolution, we use the higher-resolution RGB images and have managed to integrate super-resolution with our depth refinement method.
+Last but not the least, since the depth maps acquired from consumer RGB-D sensors usually do not have the satisfying resolution, we use the higher-resolution RGB images as cues and have managed to integrate super-resolution with our depth refinement method.
 In this way, the final refined depth can attain the same resolution as the large RGB images with all the fine details.
 We believe this is the first shading-based depth super-resolution approach.
 
@@ -67,15 +80,15 @@ The main contributions of this dissertation are:
 \begin{enumerate}
 %    \item We present a more efficient and faster implementation of an advanced depth refinement method~\cite{or2015rgbd}.
     \item We propose a new RGB ratio model to resolve the nonlinearity and achieve similar accuracy to the state-of-the-art methods.
-    \item We introduce a robust multi-light method which outperforms the other depth refinement approaches both quantitatively and qualitatively. Moreover, no regularization is imposed.
+    \item We introduce a robust multi-light method which outperforms other depth refinement approaches both quantitatively and qualitatively. Moreover, no regularization is imposed.
     \item We combine the image super-resolution with our method and present the high-quality and high-resolution depth.
 \end{enumerate}
 
 
 \section{Outline}
 The outline of the thesis is organized as follows.
-In Chapter~\ref{chap:background}, we introduce the RGB-D cameras, related knowledge about shape from shading and photometric stereo and the state-of-the-art depth refinement approaches.
-Chapter~\ref{chap:methodology} describes the methods developed in this thesis, including a modified version of RGBD-Fusion and two new methods. 
+In Chapter~\ref{chap:background}, we introduce the RGB-D cameras, related knowledge about shape from shading and photometric stereo as well as the state-of-the-art depth refinement approaches.
+Chapter~\ref{chap:methodology} describes the methods developed in this thesis, including a modified version of RGBD-Fusion and two proposed methods. 
 Extensive quantitative and qualitative evaluations on the performance of our methods are then presented in Chapter~\ref{chap:result}.
 Finally, Chapter~\ref{chap:conclusion} summarizes the developed approaches and provides the possible extensions for the future research.
 

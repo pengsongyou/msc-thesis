@@ -1,10 +1,10 @@
 \chapter{Results and Evaluation} \label{chap:result}
 %{\color{red}Give some introduction, the structure of this chapter.}
 \textbf{Parameter setup}
-First we need to specify the parameters we used throughout the whole evaluation part. 
-The default parameters are applied for the RGBD-Fusion method, which has 8 in total. 
-It should be mentioned that, since both proposed methods don't have a smoothness term for the depth enhancement, the $\lambda_z^2$ in RGBD-Fusion and $\lambda_l$ in our implementation RGBD-Fusion Like method are set to 0 for the sake of fairness comparison.
-$\lambda_z^2$ and $\lambda_l$ are set to the values in table~\ref{tab:parameter_setup} only during the quantitative evalution because we want to illustrate the importance of this smoothness term.
+First of all, we need to specify the parameters we used throughout the whole evaluation part. 
+The default parameters are used for the RGBD-Fusion method, which has 8 in total. 
+It should be mentioned that, since both proposed methods don't have a smoothness term for the depth enhancement, $\lambda_z^2$ in RGBD-Fusion and $\lambda_l$ in our RGBD-Fusion Like method are set to 0 for the sake of fairness comparison.
+$\lambda_z^2$ and $\lambda_l$ are set to the values in table~\ref{tab:parameter_setup} only during the quantitative evalution because we want to illustrate the importance of this depth smoothness term for the RGBD-Fusion method.
 \begin{table}[!ht]
 \caption{Parameters of all the methods throughout all the experiments.}
 \label{tab:parameter_setup}
@@ -77,7 +77,7 @@ L =
     \raisebox{-0.4cm}{\includegraphics[height=0.1\textwidth]{figures/result/light10.pdf}}
     \end{split}
 \end{equation*}
-After defining the lightings for various methods, three various albedo scenarios are also considered: 
+After defining the lighting setup for various methods, three various albedo scenarios are also considered: 
 \begin{itemize}
     \item Red, green and blue piecewise constant areas
     \item Colorful patterns with a few small details inside\footnote{EBSD map. Image courtesy of \url{https://mtex-toolbox.github.io/files/doc/EBSDSpatialPlots.html}}
@@ -91,10 +91,10 @@ With the 3 different albedos and all the pre-defined lights, we can create the s
 \subsection{Results Accuracy}
 %-------------------------------------------------------------------------------
 \textbf{Metrics}
-Two metrics have been defined to quantitatively evaluate the performance of depth refinement: root mean square error (RMSE) between ground truth depth and the estimated depth, and mean angular error (MAE) between the ground truth and estimated normal directions.
+Two metrics have been defined to quantitatively evaluate the performance of depth refinement: root mean square error (RMSE) between ground truth and the estimated depth, and mean angular error (MAE) between the ground truth and estimated normal directions.
 Since we have already had the input rough depth and the ground truth depth as shown in Fig.~\ref{fig:comp_syn_input}, we can define two metrics as follows.
 
-Assuming $z_g, N_g$ and $z, N$ are the ground truth and the refined depth and normal respectively, $m$ the total number of pixels inside the given mask $\mathcal{M}$ and $i$ the index inside the mask, a loosely definition is: 
+Assuming $z_g, N_g$ and $z, N$ are the ground truth and the refined depth and normal respectively, $m$ the total number of pixels inside the given mask $\mathcal{M}$ and $i$ the index inside the mask, the loosely definitions for RMSE and MAE are: 
 \begin{align}
     e_{RMSE} &= \sqrt{\frac{\sum\limits_{i}^{m}{(z(i) - z_g(i))^2}}{m}}\\
     e_{MAE} &= \frac{\sum\limits_{i}^{m} \arccos (N(i) \cdot N_g(i))}{m}
@@ -123,14 +123,15 @@ Robust multi-light model               & 2.3125                   & \textbf{3.87
 
 According to table~\ref{tab:parameter_setup},~\ref{tab:comp_syn_eval} and Fig.~\ref{fig:result_syn_comp}, there are some interesting observations:
 \begin{itemize}
-    \item Our RGBD-Fusion Like method uses less parameters than RGBD-Fusion~\cite{or2015rgbd} (5 against 8) but achieves almost the same results as the original paper. 
-    \item The Laplacian smoothness term in the depth enhancement energy of RGBD-Fusion method has a huge impact on the refined results. In contrast, both our proposed methods have no smoothness term but provide equal or better results.
+    \item Our RGBD-Fusion Like method uses fewer parameters (5 against 8) and less runtime (around 7s against 21s) than RGBD-Fusion~\cite{or2015rgbd} but achieves almost the same results as the original paper.
+    \item Adding the Laplacian smoothness term in the depth enhancement energy of RGBD-Fusion method makes a huge improvement on the refined results. In contrast, both our proposed methods have no smoothness term but provide equal or better results.
     \item Single depth image refinement methods (RGBD-Fusion and RGB ratio model) have a chance to acquire satisfactory results only when the albedo is simple with several big color patches. 
-    However, they will fail and give even worse in terms of RMSE and MAE when the albedos get complicated. 
-    Most of the small details on the albedo of "Pattern" and ``Complicate Pattern'' cannot be acquired, which leads to the wrong depth estimation.
-    This is due to the fact that the albedo estimation in these methods highly relies on the regularization terms which prefers piecewise smoothness, but this does not meet the condition of most real-world objects.
+    However, they will fail and give even worse results than the input depth in terms of RMSE and MAE when the albedos get complicated. 
+    Most of the small details on the albedo of "Pattern" and ``Complicate Pattern'' cannot be acquired by these methods, which leads to the wrong depth estimation.
+    This is due to the fact that their albedo estimations highly rely on the regularization terms which prefer piecewise smoothness, but this does not meet the condition of most real-world objects.
     \item It can be effortlessly noticed that our robust multi-light method has a strong ability to handle the cases with extremely complicated albedo. 
-    Instead of using any regularization for calculating the albedo, extra images with various light directions solve the overfitting problems of albedo and enable the albedo estimation with only the SFS term (Eq.~\ref{eq:robust_albedo_estimate}).
+    Instead of using any regularization terms, our method use only one shading term (Eq.~\ref{eq:robust_albedo_estimate}) to estimate the albedo with extra images illuminated from various light directions. 
+    Compared to the albedo estimated by other methods, the albedo from our multi-light method could recover most of the details.
 \end{itemize}
 
 
@@ -138,10 +139,10 @@ According to table~\ref{tab:parameter_setup},~\ref{tab:comp_syn_eval} and Fig.~\
 
 \begin{figure}[!ht]
 \centering
-\subfigure[Input depth]{\label{fig:robust_matrix1}\includegraphics[width=0.2\linewidth]{figures/result/comp_input_shape.pdf}}
+\subfigure[Input depth]{\label{fig:robust_matrix1}\includegraphics[width=0.16\linewidth]{figures/result/comp_input_shape.pdf}}
 \qquad \qquad
-\subfigure[Ground truth depth]{\label{fig:robust_matrix2}\includegraphics[width=0.2\linewidth]{figures/result/comp_gt_shape.pdf}}
-\caption{The 3D shape of input rough depth and the ground truth depth for the quantitative evalution.}
+\subfigure[Ground truth depth]{\label{fig:robust_matrix2}\includegraphics[width=0.16\linewidth]{figures/result/comp_gt_shape.pdf}}
+\caption{The input depth and the ground truth depth for the quantitative evaluation.}
 \label{fig:comp_syn_input}
 \end{figure}
 
@@ -227,7 +228,7 @@ According to table~\ref{tab:parameter_setup},~\ref{tab:comp_syn_eval} and Fig.~\
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   \end{tabular}
   }
-  \caption{Evaluation of our two proposed methods RGB ratio and Robust Multi-Light method against our implementaion of RGBD-Fusion~\cite{or2015rgbd}, in three different albedos from simple to complicated. Our proposed methods outperform RGBD-Fusion in all tests with respect to both RMSE and MAE. The reference errors of input are 3.35 for RMSE and 16.75 for MAE.}
+  \caption{Evaluation of our two proposed methods RGB ratio and Robust Multi-Light method against our implementaion of RGBD-Fusion~\cite{or2015rgbd}, in three different albedos from simple to complicated. The reference errors of input are 3.35 for RMSE and 16.75 for MAE. Our proposed methods outperform RGBD-Fusion in all tests.}
   \label{fig:result_syn_comp}
 \end{figure}
 
@@ -240,7 +241,7 @@ The resolution of our synthetic image is $540\times 960$.
 
 We first compare the runtime for 4 methods, which is shown in table~\ref{tab:runtime}.
 It is noticeable that our implementation of RGBD-Fusion like method is much faster than the original approach while the accuracy from our implementaion is quite similar to the original one.
-On the one hand, we only consider the pixel inside the mask while the official implementation uses the whole image.
+On the one hand, we only consider the pixel inside the mask while the official implementation\footnote{Source code of official RGBD-Fusion implementation can be found: \url{https://cs.technion.ac.il/~royorel/rgbd_fusion.html}} uses the whole image.
 On the other hand, instead of estimating the ambient light for each pixel with an extra energy, we directly treat the ambient light as one parameter inside the first-order spherical harmonics so the the ambient light could be obtained along with lighting directions.
 
 It should be mentioned that both our proposed approaches are indeed about twice slower than RGBD-Fusion method. 
@@ -265,13 +266,13 @@ Now for the proposed robust multi-light method, we are interested in understandi
 To perform the experiment, we first randomly pre-defined 100 illumination directions and constructed the corresponding synthetic color images.
 And then we picked $3,6,10,15,20,30, 40$ images from this new dataset and recorded the runtime in each iteration as well as the final errors when the stopping criteria in Alg.~\ref{alg:robust} set to $\epsilon = 0.01$.
 
-It has been shown in Fig.~\ref{fig:result_runtime} that when the number of images increases, the runtime for each iteration has linearly ascent, while two errors decrease and then reach a platform.
-Therefore, if we take the comprehensive consideration, $10-20$ are a suitable number for different number of illuminations.
+It has been shown in Fig.~\ref{fig:result_runtime} that when the number of images increases, the runtime for each iteration has linearly ascent, while two errors decrease and reach a platform.
+Thus, if we take the comprehensive consideration, $10\sim20$ is a suitable number for different number of illuminations.
 
 \begin{figure}[!ht]
     \centering
     \includegraphics[height = 0.6\linewidth]{figures/result/runtime.eps} 
-    \caption{Illustrations for the runtime, RMSE and MAE in various number of images for the proposed robust multi-light method.}
+    \caption{Illustrations for the runtime, RMSE and MAE in various number of illuminations for the proposed robust multi-light method.}
 \label{fig:result_runtime}
 \end{figure}
 
@@ -280,7 +281,7 @@ Therefore, if we take the comprehensive consideration, $10-20$ are a suitable nu
 \section{Qualitative Evaluation}
 %----------------------------------------------
 Except for the quantitative evaluation, we have found out that our robust multi-light method also outperforms the state-of-the-art methods qualitatively in many aspects.
-In this part, we will first show the robustness of depth estimation of our method on the objects with complex albedo.
+In this part, we will first show the robustness of depth estimation of the proposed multi-light method on the objects with complicated albedo.
 Then, we will demonstrate the performance on the non-Lambertian (specular) objects.
 Moreover, as mentioned in chapter~\ref{chap:background}, uncalibrated photometric stereo suffers from the GBR ambiguity.
 So we will finally exemplify that our method also outperforms other photometric stereo algorithms because of the input depth cues.
@@ -295,7 +296,7 @@ To be fair, we set the parameter for Laplacian smoothness term in RGBD-Fusion to
 
 As we can notice, the first example in Fig.~\ref{fig:comp_complicated_albedo} is a flat colorful iPad cover with an underlying narrow slot on it.
 The depth and the surface normal recovered from RGBD-Fusion method contain quantities of wrong details from the albedo at the same time that the slot almost disappears.
-On the contrary, our method has successfully refined the flat depth of the cover with the visible slot.
+On the contrary, our method has successfully refined the flat surface of the cover with the visible slot.
 Similarly in the second example, there are no depth differences among the patterns on the colorful shirt, yet the RGBD-Fusion method could not manage to figure out this fact.
 Again, our method is able to get rid of nearly all the patterns and recover the real shape of the shirt. 
 
@@ -305,7 +306,7 @@ Again, our method is able to get rid of nearly all the patterns and recover the 
 \setlength{\tabcolsep}{0.1em} % column spacing
  {\renewcommand{\arraystretch}{1.6}% row spacing
 \begin{tabular}{c|c c}
-   \includegraphics[height = 0.24\linewidth]{figures/result/robust_padback_rgb.pdf} 
+   \includegraphics[height = 0.24\linewidth]{figures/result/robust_padback_rgb2.pdf} 
    &
    \includegraphics[height = 0.23\linewidth]{figures/result/rgbd_padback_normal.pdf} &
    \includegraphics[height = 0.23\linewidth]{figures/result/robust_padback_normal.pdf} \\
@@ -327,7 +328,7 @@ Again, our method is able to get rid of nearly all the patterns and recover the 
 
    {Input} & {RGBD-Fusion~\cite{or2015rgbd}} & {Proposed Multi-Light Model}               
  \end{tabular}}
-\caption{Comparison our multi-light model with RGBD-Fusion in two specular objects. On the first column, the RGB images of the iPad cover and the shirt are ones of the 10 various illuminations. First and third rows correspond to the surface normal from the refined depth, while the second and fourth are the refined depth.}
+\caption{Comparisons between our multi-light model and RGBD-Fusion for two specular objects. On the first column, the RGB images of the iPad cover and the shirt are ones of the 10 various illuminations. First and third rows correspond to the surface normal from the refined depth, while the second and fourth are the refined depth.}
 \label{fig:comp_complicated_albedo}
 \end{figure}
 %&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -353,10 +354,10 @@ However, it turns out that our multi-light approach can still work well and reco
 \end{figure}
 
 To explain the reason why our method is working, we first assume that 10 input color images are given.
-We know the specularity in each image differs from others 9 images owing to the fact that we sway the active LED light location.
+We know the specularity in each image differs from others 9 images owing to the fact that we sway the active LED light.
 This means, the specularity appearing in a certain image has a high probability not to be specular again in the rest 9.
 Meanwhile, the albedo and depth refinement of our algorithm use all 10 images instead of just the specular one,
-hence, the rest 9 images under the least square would remedy the specularity in that area.
+hence, the rest 9 images under the least squares would remedy the specularity in that area.
 A very clear example to illustrate the compensation effect of the specularity is shown in Fig.~\ref{fig:specular_illu}.
 %&&&&&&&&&&&&&&&&&&&&&&&&&
 \begin{figure}[!ht]
@@ -387,7 +388,7 @@ A very clear example to illustrate the compensation effect of the specularity is
 
    {Input} & {RGBD-Fusion~\cite{or2015rgbd}} & {Proposed Multi-Light Model}               
  \end{tabular}}
-\caption{Comparisons between our multi-light method and RGBD-Fusion in specular objects. The RGB images on the first column are ones among 10 various illuminations. First and third rows correspond to the surface normals, while second and fourth are the refined depths.}
+\caption{Comparisons between our multi-light method and RGBD-Fusion for specular objects. The RGB images on the first column are among 10 various illuminations. First and third rows correspond to the surface normals, while second and fourth are the refined depths.}
 \label{fig:comp_specular}
 \end{figure}
 
@@ -398,7 +399,7 @@ Also, we would like to show the advantages of our method over other uncalibrated
 Here we compare our robust multi-light method with a state-of-the-art PS method~\cite{favaro2012closed} from Favaro and Papadhimitri~\footnote{The LDR-PS code can be obtained from author's website \url{http://www.cvg.unibe.ch/tpapadhimitri/}}. 
 Here we call their method LDR-PS.
 
-First we made the comparison on the synthetic dataset of colorful patterns from last section.
+First we make the comparison on the synthetic dataset of colorful patterns from last section.
 It is noticeable in Fig.~\ref{fig:ps_comp_syn} that the depth enhanced with our method is almost the same as the ground truth.
 The result acquired from LDR-PS seems to have similar appearance with the ground truth from the frontal direction (it looks darker because the estimated depth from LDR-PS method is not always correct).
 However, if we rotate the reconstructed map to the side, we can notice that the discontinuity between the head and body has been over-smoothed and the pedestal is distorted.
