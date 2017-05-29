@@ -20,17 +20,17 @@ There are various possible directions for the future work on our depth refinemen
     \item It has been shown in~\cite{khoshelham2012accuracy} that the noise level of depth acquisition from low-cost depth sensors grows quadratically with respect to the increasing distance.
     Hence, the refined depth from out methods should be theoretically more accurate if every depth pixel is weighed according to the corresponding measurement noise .
     
-    \item As we mentioned, the depths for complicated objects refined by single-image based depth refinement methods more or less contain artefacts, due to the fact that the designed constraints on the albedo are not practical so the estimated depth may be affected by the inaccurate albedo.
+    \item As we mentioned, the depths for complicated objects refined by single-image based depth refinement methods contain artefacts, due to the fact that the designed constraints on the albedo are not practical so the estimated depth may be affected by the inaccurate albedo.
     For example, many approaches use anisotropic Laplacian to impose the piecewise smoothness on the albedo, which is not commonly correct for the real-world objects.
     Hence, provided we can use a more realistic regularization, the refined depth is supposed to be better.
     Recently some researchers have proposed a general framework to jointly deal with many classic computer vision tasks like deblurring, demosaicing or denoising which are modelled with $\lVert Ax - b\rVert^2 + R(x)$.
     Instead of using certain regularizations like TV, they separate the equation using Primal-Dual or ADMM scheme and directly solve the proximal operator of the arbitrary regularizer $R$ with a BM3D denoiser\cite{heide2014flexisp} or a deep denoising neural network\cite{meinhardt2017learning}.
-    It would be very interesting if we can use such scheme to estimate the albedo. 
+    It would be very interesting if we could use such scheme to estimate the albedo. 
 
     \item The existing 3D object reconstruction/modelling methods are subject to low-resolution and bad-quality depths.
              It is very promising to integrate them with our shading-based depth super-resolution method, which will potentially improve the reconstruction accuracy.   
      
-    \item Same as other methods, one prerequisite of our methods is that the depth image needs to be registered to the RGB image.
+    \item As with other methods, one prerequisite of our methods is that the depth image needs to be registered to the RGB image.
     It is possible to integrate the depth image registration within the refinement framework implicitly such that we can directly acquire depth and color images from the RGB-D sensors without any other third-party software like OpenNI.
              
 \end{itemize}

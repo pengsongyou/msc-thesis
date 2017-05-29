@@ -3,10 +3,10 @@
 \textbf{Parameter setup}
 First of all, we need to specify the parameters we used throughout the whole evaluation part. 
 The default parameters are used for the RGBD-Fusion method, which has 8 in total. 
-It should be mentioned that, since both proposed methods don't have a smoothness term for the depth enhancement, $\lambda_z^2$ in RGBD-Fusion and $\lambda_l$ in our RGBD-Fusion Like method are set to 0 for the sake of fairness comparison.
+It should be mentioned that, since both proposed methods don't have a smoothness term for the depth enhancement, $\lambda_z^2$ in RGBD-Fusion and $\lambda_l$ in our RGBD-Fusion Like method are set to 0 for the sake of fairness of comparison.
 $\lambda_z^2$ and $\lambda_l$ are set to the values in table~\ref{tab:parameter_setup} only during the quantitative evalution because we want to illustrate the importance of this depth smoothness term for the RGBD-Fusion method.
 \begin{table}[!ht]
-\caption{Parameters of all the methods throughout all the experiments.}
+\caption{Parameters of all the methods used throughout all the experiments.}
 \label{tab:parameter_setup}
 \centering
 \begin{tabular}{|m{4cm} |m{1.5cm} |m{7cm}|}
@@ -103,7 +103,7 @@ The RMSE reflects the global refined depth quality (low frequency), while the MA
 It should be mentioned that $e_{MAE}$ gives values in radians but we convert it to degrees.
 
 \begin{table}[!ht]
-\caption{Quantitative evaluations among 4 methods. RMSE and MAE are in pixels and degrees respectively. "No smooth" means no laplacian smoothness term in depth enhancement.}
+\caption{Quantitative evaluations among 4 methods. RMSE and MAE are in pixels and degrees respectively. ``No smooth'' means no laplacian smoothness term in depth enhancement.}
 \vspace{1em}
 \label{tab:comp_syn_eval}
 \centering
@@ -294,12 +294,6 @@ In constrast, the state-of-the-art depth enhancement methods with one image work
 Figure~\ref{fig:comp_complicated_albedo} has proved that this judgment still holds correct for the real-world objects.
 To be fair, we set the parameter for Laplacian smoothness term in RGBD-Fusion to zero.
 
-As we can notice, the first example in Fig.~\ref{fig:comp_complicated_albedo} is a flat colorful iPad cover with an underlying narrow slot on it.
-The depth and the surface normal recovered from RGBD-Fusion method contain quantities of wrong details from the albedo at the same time that the slot almost disappears.
-On the contrary, our method has successfully refined the flat surface of the cover with the visible slot.
-Similarly in the second example, there are no depth differences among the patterns on the colorful shirt, yet the RGBD-Fusion method could not manage to figure out this fact.
-Again, our method is able to get rid of nearly all the patterns and recover the real shape of the shirt. 
-
 %&&&&&&&&&&&&&&&&&&&&&&&&&
 \begin{figure}[!ht]
 \centering
@@ -328,10 +322,15 @@ Again, our method is able to get rid of nearly all the patterns and recover the 
 
    {Input} & {RGBD-Fusion~\cite{or2015rgbd}} & {Proposed Multi-Light Model}               
  \end{tabular}}
-\caption{Comparisons between our multi-light model and RGBD-Fusion for two specular objects. On the first column, the RGB images of the iPad cover and the shirt are ones of the 10 various illuminations. First and third rows correspond to the surface normal from the refined depth, while the second and fourth are the refined depth.}
+\caption{Comparisons between our multi-light model and RGBD-Fusion for two specular objects. On the first column, the RGB images of the iPad cover and the shirt are ones of the 10 various illuminations. The first and third rows correspond to the surface normals, while the second and fourth are the refined depths.}
 \label{fig:comp_complicated_albedo}
 \end{figure}
 %&&&&&&&&&&&&&&&&&&&&&&&&&
+As we can notice, the first example in Fig.~\ref{fig:comp_complicated_albedo} is a flat colorful iPad cover with an underlying narrow slot on it.
+The depth and the surface normal recovered from RGBD-Fusion method contain quantities of wrong details from the albedo at the same time that the slot almost disappears.
+On the contrary, our method has successfully refined the flat surface of the cover with the visible slot.
+Similarly in the second example, there are no depth differences among the patterns on the colorful shirt, yet the RGBD-Fusion method could not manage to figure out this fact.
+Again, our method is able to get rid of nearly all the patterns and recover the real shape of the shirt. 
 
 %----------------------------------------------
 \subsection{Specular (non-Lambertian) objects}
@@ -349,13 +348,13 @@ However, it turns out that our multi-light approach can still work well and reco
 \subfigure[One illumination]{\includegraphics[width=0.3\linewidth]{figures/methodology/sr_rgb_big.pdf}}
 \subfigure[The other illumination]{\includegraphics[width=0.3\linewidth]{figures/methodology/sr_rgb2.pdf}}
 \subfigure[Estimated albedo with multi-light method]{\includegraphics[width=0.3\linewidth]{figures/methodology/sr_albedo.pdf}}
-\caption{Demonstrations for the albedo remedy of specularity of a paper bag. The first two images are under different illuminations among other 8. The third image represents the albedo estimated by our multi-light method. We can clearly see the specular parts in the images appear different from other parts in the albedo, which is the result of the remedy of specularity.}
+\caption{Demonstrations for the albedo remedy of specularity of a paper bag. The first two images are among the 10 various illumination conditions. The third image represents the albedo estimated by our multi-light method. We can clearly see the specular parts in the images appear different from other parts in the albedo, which is the result of the remedy of specularity.}
 \label{fig:specular_illu}
 \end{figure}
 
 To explain the reason why our method is working, we first assume that 10 input color images are given.
-We know the specularity in each image differs from others 9 images owing to the fact that we sway the active LED light.
-This means, the specularity appearing in a certain image has a high probability not to be specular again in the rest 9.
+We know the specularity in each image differs from the other 9 images owing to the fact that we sway the active LED light.
+This means, the specularity appearing in a certain image has a high probability not to be specular again in the other 9.
 Meanwhile, the albedo and depth refinement of our algorithm use all 10 images instead of just the specular one,
 hence, the rest 9 images under the least squares would remedy the specularity in that area.
 A very clear example to illustrate the compensation effect of the specularity is shown in Fig.~\ref{fig:specular_illu}.
@@ -388,7 +387,7 @@ A very clear example to illustrate the compensation effect of the specularity is
 
    {Input} & {RGBD-Fusion~\cite{or2015rgbd}} & {Proposed Multi-Light Model}               
  \end{tabular}}
-\caption{Comparisons between our multi-light method and RGBD-Fusion for specular objects. The RGB images on the first column are among 10 various illuminations. First and third rows correspond to the surface normals, while second and fourth are the refined depths.}
+\caption{Comparisons between our multi-light method and RGBD-Fusion for specular objects. The RGB images in the first column are among 10 various illuminations. First and third rows correspond to the surface normals, while the second and fourth are the refined depths.}
 \label{fig:comp_specular}
 \end{figure}
 
