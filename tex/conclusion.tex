@@ -1,34 +1,34 @@
 \chapter{Conclusions and Future Work} \label{chap:conclusion}
 
-In this thesis, we develop two new depth refinement algorithms which significantly enhance the quality of the noisy and coarse depth images from the consumer RGB-D camera. 
-The RGB ratio model utilizes red, green and blue LEDs as the active lights and iteratively refines the depth maps with the ratio models for every pair of the input RGB images. 
+In this thesis, we have developed two new depth refinement algorithms which significantly enhance the quality of the noisy and coarse depth images from consumer RGB-D cameras. 
+The proposed RGB ratio model utilizes red, green and blue LEDs as the active lights and iteratively refines the depth map with the ratio Lambertian models for every pair of channels of the input RGB image. 
 This method requires only one color image and resolves the nonlinearity in the inverse problem.
 Nevertheless, the method may be limited by the size of indoor environment because the active lights should be set as far away from each other as possible.
-Also, similar to other depth enhancement methods based on one single image, it could merely handle the objects with constant or simple albedo.
+Also, similar to other depth enhancement methods based on one single image, it can merely handle the objects with constant or simple albedo.
 The recovered depths may contain artefacts because this type of methods has difficulty in estimating the complicated albedo.
 Therefore, we present another robust multi-light method which is able to handle such issue.
 
-The robust multi-light method uses multiple images illuminated from different directions to jointly estimate the depth, albedo as well as lighting directions.
-The robustness of this method is achieved by the capacity of recovering real complicated albedo and shape without any regularization term.
-And unlike most of previous methods which have a number of tuning parameters, we only have one fixed parameter which works well in almost all cases.  
-Moreover, the method has been integrated with image super-resolution scheme such that a high-quality but also high-resolution refined depth map can be obtained.
-We believe this is the first depth super-resolution approach based on photometric stereo.
-This robust multi-light method shows the potential of high-resolution 3D reconstruction from an affordable RGB-D camera.
+The robust multi-light method uses multiple images, in which the object is illuminated from different directions, to jointly estimate the depth, albedo as well as lighting conditions.
+The robustness of this method is achieved by the capacity of recovering the complicated albedo and real shape without any regularization term.
+Unlike most of the previous methods which have a number of tuning parameters, we only have one fixed parameter which works well in almost all cases.  
+Moreover, this method has been integrated with the image super-resolution scheme such that a high-quality and high-resolution refined depth map can be obtained.
+We believe this is the first depth image super-resolution approach based on photometric stereo.
+To conclude, our robust multi-light method shows the potential of high-resolution 3D reconstruction from an affordable RGB-D camera.
 
-There are various possible directions for the future work on our depth refinement research:
+There are various possible directions for the future work on our depth or shape refinement research:
 \begin{itemize}
     \item It has been shown in~\cite{khoshelham2012accuracy} that the noise level of depth acquisition from low-cost depth sensors grows quadratically with respect to the increasing distance.
-    Hence, the refined depth from out methods should be theoretically more accurate if every depth pixel is weighed according to the corresponding measurement noise .
+    Hence, the refined depth should be theoretically more accurate if every depth pixel is weighted according to the corresponding measurement noise.
     
-    \item As we mentioned, the depths for complicated objects refined by single-image based depth refinement methods contain artefacts, due to the fact that the designed constraints on the albedo are not practical so the estimated depth may be affected by the inaccurate albedo.
-    For example, many approaches use anisotropic Laplacian to impose the piecewise smoothness on the albedo, which is not commonly correct for the real-world objects.
-    Hence, provided we can use a more realistic regularization, the refined depth is supposed to be better.
-    Recently some researchers have proposed a general framework to jointly deal with many classic computer vision tasks like deblurring, demosaicing or denoising which are modelled with $\lVert Ax - b\rVert^2 + R(x)$.
-    Instead of using certain regularizations like TV, they separate the equation using Primal-Dual or ADMM scheme and directly solve the proximal operator of the arbitrary regularizer $R$ with a BM3D denoiser\cite{heide2014flexisp} or a deep denoising neural network\cite{meinhardt2017learning}.
+    \item As we mentioned, the depths for complicated objects refined by single-image based methods contain artefacts, due to the fact that the designed constraints on the albedo are not practical so the estimated depth may be affected by the inaccurate albedo.
+    For instance, many approaches use anisotropic Laplacian to impose the piecewise smoothness on the albedo, which is not commonly correct for the real-world objects.
+    Hence, provided we can use a more realistic regularization term, the estimated albedo and the refined depth are supposed to be better.
+    Recently some researchers have proposed a general framework to jointly deal with many classic computer vision tasks like deblurring, demosaicing and denoising which are normally modelled with $\lVert Ax - b\rVert^2 + R(x)$.
+    Instead of using certain regularizations like TV, they separate the equation using the Primal-Dual or ADMM scheme and directly solve the proximal operator of the arbitrary regularizer $R$ with a BM3D denoiser\cite{heide2014flexisp} or a deep denoising neural network\cite{meinhardt2017learning}.
     It would be very interesting if we could use such scheme to estimate the albedo. 
 
     \item The existing 3D object reconstruction/modelling methods are subject to low-resolution and bad-quality depths.
-             It is very promising to integrate them with our shading-based depth super-resolution method, which will potentially improve the reconstruction accuracy.   
+             It is promising to integrate them with our shading-based depth super-resolution method, which will potentially improve the reconstruction accuracy.   
      
     \item As with other methods, one prerequisite of our methods is that the depth image needs to be registered to the RGB image.
     It is possible to integrate the depth image registration within the refinement framework implicitly such that we can directly acquire depth and color images from the RGB-D sensors without any other third-party software like OpenNI.
