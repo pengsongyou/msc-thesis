@@ -421,7 +421,7 @@ The overall energy for the proposed RGB ratio model method is:
     E(\mathcal{P}, z, \mathbf{s}) = \; \lVert \mathscr{R}(\mathcal{P}, z) \rVert^2_2 
     + \lambda_z||z - z_0||^2
     + \lambda_{\rho}^1 \lVert \omega \nabla \mathcal{P} \rVert^2
-    + \sum_{c} \lVert \rho_c \; \mathbf{s}_c^\top \tilde{\mathbf{n}} - &I_c \rVert^2_2, \; \\ &c\in\{R,G,B\}
+    + \sum_{c} \lVert \rho_c \;  \tilde{\mathbf{n}}\mathbf{s} - &I_c \rVert^2_2, \; \\ &c\in\{R,G,B\}
     \end{split}
 \end{equation}
 where $\mathcal{P}\in\mathbb{R}^{3m}$ is the stack of RGB albedo, and $\mathscr{R}$ denotes our ratio model which will be defined separately in the following part. $m$ is the number of pixels inside $\mathcal{M}$.
@@ -545,7 +545,7 @@ When the estimated color albedo and light are fixed, the depth refinement proble
 \textbf{Light estimation}
 Since estimating light with the proposed ratio model is an ill-posed problem, we decided to use Eq.~\ref{eq:rgbd_light_estimate} to calculate the SH parameters for each channel when the albedo and the surface normal are frozen. The minimization problem from Eq.~\ref{eq:ratio_energy} can then be written as:
 \begin{equation}\label{eq:ratio_light_estimate}
-    \mathbf{s}^{(t)} = \argmin_{\mathbf{s} = (\mathbf{s}_R, \mathbf{s}_G, \mathbf{s}_B)}\sum_{c} \lVert \rho_c \; \mathbf{s}_c^\top \tilde{\mathbf{n}} - I_c\rVert^2_2, \; c\in\{R,G,B\}
+    \mathbf{s}^{(t)} = \argmin_{\mathbf{s} = (\mathbf{s}_R, \mathbf{s}_G, \mathbf{s}_B)}\lVert \rho_c \; \tilde{\mathbf{n}}\mathbf{s} - I_c\rVert^2_2, \; c\in\{R,G,B\}
 \end{equation}
 
 Alg.~\ref{alg:rgb_ratio} outlines the process of RGB ratio model method and Fig.~\ref{fig:ratio_illustration} illustrates the effectiveness of this approach.
@@ -701,7 +701,7 @@ In each iteration, we first freeze the albedo and the surface normal and then re
 %$$$$$$$$$$$$$$$$$
 To estimate the light with the simple least squares, we reshape the shading term to a linear problem with the SH light as the argument.
 
-Let $\boldsymbol{\cdot}$ denote element-wise multiplication between a vector and each column of a matrix, we have matrices $\mathbf{A}_{\mathbf{s}_{i,c}} = \rho_c \boldsymbol{\cdot} \tilde{\mathbf{n}}(z)$ for every channel in all input color images. 
+Let $\boldsymbol{\cdot}$ denote element-wise multiplication between a vector and each column of a matrix, we have matrices $\mathbf{A}_{\mathbf{s}_{i,c}} = \rho_{i,c} \boldsymbol{\cdot} \tilde{\mathbf{n}}(z)$ for every channel in all input color images. 
 Therefore, the illuminations can be estimated with the shading term in the energy as below:
 %$$$$$$$$$$$$$$$$$
 \begin{equation}\label{eq:robust_light_estimate2}
@@ -800,7 +800,7 @@ Provided we denote the gradient matrices in $x$ and $y$ directions as $D_x$ and 
 \end{equation}
  %$$$$$$$$$$$$$$$$$
 This is the linear equation for one image. 
-Now we define the $\mathbf{A}_z$ and $\mathbf{b}_z$ for our system:
+Now we define the $\mathbf{A}_{z_{c}}$ and $\mathbf{b}_{z_{c}}$ for our system:
  %$$$$$$$$$$$$$$$$$
 \begin{equation}\label{eq:robust_depth3}
 \begin{split}
@@ -926,7 +926,7 @@ Now, $Z$ is again used to replace $z$ during the construction of $\mathbf{A}_z$ 
  
 With the input small depth $z_0\in\mathbb{R}^m$ and a downsampling kernel $K \in \mathbb{R}^{m\times M}$ where $m$ and $M$ represent the number of the pixel within the small mask and the big mask respectively, the super-resolution depth refinement energy now is changed to:
  %$$$$$$$$$$$$$$$$$
- \begin{equation}\label{eq:robust_depth_estimate}
+ \begin{equation}\label{eq:robust_depth_estimate_d}
     \min_{Z} \; \lVert  \mathbf{A}_{Z}Z - \mathbf{b}_Z\rVert^2_2 + \lambda_{z}\lVert K\cdot Z - z_0 \rVert_2^2
 \end{equation}
  %$$$$$$$$$$$$$$$$$
