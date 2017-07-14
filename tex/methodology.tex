@@ -778,25 +778,25 @@ If we expand Eq.~\ref{eq:rgbd_light_model} with the the perspective projection n
          fz_y(x,y)\\
          -1 - (x - x_0)z_x(x,y) - (y - y_0)z_y(x,y)
      \end{pmatrix}/ d(x,y)
-     + \rho(x,y) \cdot \varphi   
+     + \varphi \cdot \rho(x,y) 
 \end{equation}
 %$$$$$$$$$$$$$$$$$
 where $d = \sqrt{(fz_x(x,y))^2 + (fz_y(x,y))^2 + (-1 - (x - x_0)z_x(x,y) - (y - y_0)z_y(x,y))^2}$ is a normalizer.
 After rearranging, we have:
  %$$$$$$$$$$$$$$$$$
 \begin{equation}
-    \frac{l^1f - l^3(x-x_0)}{d(x,y)}z_x(x,y) + \frac{l^2f - l^3(y-y_0)}{d(x,y)}z_y(x,y) = I(x,y) + \frac{l^3}{d(x,y)} - \rho(x,y)\varphi
+    \frac{\rho(x,y)(l^1f - l^3(x-x_0)}{d(x,y))}z_x(x,y) + \frac{\rho(x,y)(l^2f - l^3(y-y_0)}{d(x,y))}z_y(x,y) = I(x,y) + \frac{\rho(x,y)l^3}{d(x,y)} - \varphi \cdot \rho(x,y)
 \end{equation}
  %$$$$$$$$$$$$$$$$$
 we extend this equation to all the pixels in the mask $\mathcal{M}$ and acquire:
  %$$$$$$$$$$$$$$$$$
 \begin{equation}\label{eq:robust_depth1}
-    \frac{l^1f - l^3\tilde{x}}{d} \cdot z_x + \frac{l^2f - l^3\tilde{y}}{d} \cdot z_y = I + \frac{l^3}{d} - \varphi \cdot \rho
+    \rho\frac{l^1f - l^3\tilde{x}}{d} \cdot z_x + \rho\frac{l^2f - l^3\tilde{y}}{d} \cdot z_y = I + \rho\frac{l^3}{d} - \varphi \cdot \rho
 \end{equation}
 Provided we denote the gradient matrices in $x$ and $y$ directions as $D_x$ and $D_y$, Eq.~\ref{eq:robust_depth1} becomes:
  %$$$$$$$$$$$$$$$$$
 \begin{equation}\label{eq:robust_depth2}
-        \left(\text{diag}(\frac{l^1f - l^3\tilde{x}}{d}) D_x + \text{diag}(\frac{l^2f - l^3\tilde{y}}{d}) D_y\right) z = I + \frac{l^3}{d} - \varphi \cdot \rho
+        \left(\text{diag}(\rho\frac{l^1f - l^3\tilde{x}}{d}) D_x + \text{diag}(\rho\frac{l^2f - l^3\tilde{y}}{d}) D_y\right) z = I + \rho\frac{l^3}{d} - \varphi \cdot \rho
 \end{equation}
  %$$$$$$$$$$$$$$$$$
 This is the linear equation for one image. 
@@ -806,16 +806,16 @@ Now we define the $\mathbf{A}_{z_{c}}$ and $\mathbf{b}_{z_{c}}$ for our system:
 \begin{split}
     \mathbf{A}_{z_c} &= 
         \begin{pmatrix}    
-            \text{diag}(\frac{l^1_{1,c}f - l^3_{1,c}\tilde{x}}{d_1}) D_x + \text{diag}(\frac{l^2_{1,c}f - l^3_{1,c}\tilde{y}}{d_1}) D_y \\
+            \text{diag}(\rho_c\frac{l^1_{1,c}f - l^3_{1,c}\tilde{x}}{d_1}) D_x + \text{diag}(\rho_c\frac{l^2_{1,c}f - l^3_{1,c}\tilde{y}}{d_1}) D_y \\
             \vdots \\
-            \text{diag}(\frac{l^1_{n,c}f - l^3_{n,c}\tilde{x}}{d_n}) D_x + \text{diag}(\frac{l^2_{n,c}f - l^3_{n,c}\tilde{y}}{d_n}) D_y \\
+            \text{diag}(\rho_c\frac{l^1_{n,c}f - l^3_{n,c}\tilde{x}}{d_n}) D_x + \text{diag}(\rho_c\frac{l^2_{n,c}f - l^3_{n,c}\tilde{y}}{d_n}) D_y \\
         \end{pmatrix}_{mn \times m}
 \\
     \mathbf{b}_{z_c} &=     
         \begin{pmatrix}    
-            I_{1,c} + \frac{l^3_{1,c}}{d_{1}} - \varphi_{1,c} \cdot \rho_{c} \\
+            I_{1,c} + \rho_c\frac{l^3_{1,c}}{d_{1}} - \varphi_{1,c} \cdot \rho_{c} \\
             \vdots\\
-            I_{n,c} + \frac{l^3_{n,c}}{d_{n}} - \varphi_{n,c} \cdot \rho_{c} \\
+            I_{n,c} + \rho_c\frac{l^3_{n,c}}{d_{n}} - \varphi_{n,c} \cdot \rho_{c} \\
         \end{pmatrix}_{mn \times 1}    
 \end{split}
 \end{equation}
