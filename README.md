@@ -9,7 +9,6 @@ If you use anything related to this thesis, please cite:
     author     =     {S. Peng},
     title     =     {High Quality Shape from a RGB-D Camera using Photometric Stereo},
     school     =     {Erasmus Mundus Masters in Vision and Robotics (VIBOT)},
-    address     =     {Germany},
     year     =     {2017},
     month     =     {June}
 }
