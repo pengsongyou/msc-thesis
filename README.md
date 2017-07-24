@@ -6,7 +6,7 @@ Master thesis done in [Computer Vision Group](vision.in.tum.de) of Technical Uni
 If you use anything related to this thesis, please cite:
 ```sh
 @MastersThesis{peng2017msc,
-    author     =     {S. Peng},
+    author     =     {Songyou Peng},
     title     =     {High Quality Shape from a RGB-D Camera using Photometric Stereo},
     school     =     {Erasmus Mundus Masters in Vision and Robotics (VIBOT)},
     year     =     {2017},
